@@ -1,1 +1,7 @@
 .*.swp
+/LaTeXMathML.js
+/LaTeXMathML.standardarticle.css
+/jsMath-*.zip
+pandoc-*.tar.bz2
+pandoc-*.tar.gz
+page.tmpl
