@@ -155,9 +155,10 @@ sub htmlize ($@) {
         push @args, '--section-divs';
     };
 
-	unless ($config{pandoc_codeclasses} == "") {
-		push @args, '--indented-code-classes=' . $config{pandoc_codeclasses};
-	};
+    if ($config{pandoc_codeclasses} && ($config{pandoc_codeclasses} ne "")) {
+        push @args, '--indented-code-classes=' . $config{pandoc_codeclasses};
+    };
+
 
     for ($config{pandoc_math}) {
         if (/^mathjax$/) { 
