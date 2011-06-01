@@ -117,7 +117,7 @@ If none of these options work for you, you could check out the [teximg plugin](h
 `itex2MML`; Jason Blevins <http://jblevins.org/projects/ikiwiki/> has a plugin
 for using that tool together with Markdown. (A newer version is mentioned at <http://ikiwiki.info/todo/mdwn_itex/>.)
 
-See also <http://ikiwiki.info/todo/latex/?updated>, which describes a number of other works-in-progress for rendering LaTeX in Ikiwiki.)
+See also <http://ikiwiki.info/todo/latex>, which describes a number of other works-in-progress for rendering LaTeX in Ikiwiki.)
 
 
 ### TeX macros ###
