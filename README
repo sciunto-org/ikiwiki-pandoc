@@ -113,10 +113,11 @@ Pandoc recognizes inline TeX and can be configured to display it on the web usin
 #. If none of the other options are enabled, Pandoc will attempt to render inline TeX using Unicode characters, in so far as that's possible.
 
 
-If none of these options work for you, you could also look into using
-`itex2MML`. Jason Blevins <http://jblevins.org/projects/ikiwiki/> has a plugin
-for using that tool together with Markdown. (A newer version is mentioned at <http://ikiwiki.info/todo/mdwn_itex/>;
-and see also <http://ikiwiki.info/todo/latex/?updated>, which describes a number of other works-in-progress for rendering LaTeX in Ikiwiki.)
+If none of these options work for you, you could check out the [teximg plugin](http://ikiwiki.info/plugins/teximg/); this works something like MathTex, above. You could also look into using
+`itex2MML`; Jason Blevins <http://jblevins.org/projects/ikiwiki/> has a plugin
+for using that tool together with Markdown. (A newer version is mentioned at <http://ikiwiki.info/todo/mdwn_itex/>.)
+
+See also <http://ikiwiki.info/todo/latex/?updated>, which describes a number of other works-in-progress for rendering LaTeX in Ikiwiki.)
 
 
 ### TeX macros ###
