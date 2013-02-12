@@ -11,10 +11,21 @@ use IPC::Open2;
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
 
+    # May be both a string with a single value, a string containing commas or an arrayref
+    if ($markdown_ext =~ /,/) {
+        $markdown_ext = [split /\s*,\s*/, $markdown_ext];
+    }
+
     hook(type => "getsetup", id => "pandoc", call => \&getsetup);
-    hook(type => "htmlize", id => $markdown_ext,
-     # longname => "Pandoc Markdown",
-         call => sub { htmlize("markdown", @_) });
+    if (ref $markdown_ext eq 'ARRAY') {
+        foreach my $mde (@$markdown_ext) {
+            hook(type => 'htmlize', id => $mde,
+                 call => sub{ htmlize("markdown", @_) });
+        }
+    } else {
+        hook(type => "htmlize", id => $markdown_ext,
+             call => sub { htmlize("markdown", @_) });
+    }
     if ($config{pandoc_latex}) {
         hook(type => "htmlize", id => "tex",
              call => sub { htmlize("latex", @_) });
@@ -157,6 +168,7 @@ sub getsetup () {
 
 sub htmlize ($@) {
     my $format = shift;
+    my $target_format = 'html';
     my %params = @_;
     my $page = $params{page};
 
@@ -176,7 +188,7 @@ sub htmlize ($@) {
     };
 
     if ($config{pandoc_html5}) {
-        push @args, '--html5';
+        $target_format = 'html5';
     };
 
     if ($config{pandoc_ascii}) {
@@ -196,11 +208,11 @@ sub htmlize ($@) {
     };
 
     if ($config{pandoc_bibliography}) {
-        push @args, '--bibliography="'.$config{pandoc_bibliography}.'"';
+        push @args, '--bibliography='.$config{pandoc_bibliography};
     }
 
     if ($config{pandoc_csl}) {
-        push @args, '--csl="'.$config{pandoc_csl}.'"';
+        push @args, '--csl='.$config{pandoc_csl};
     }
 
     for ($config{pandoc_math}) {
@@ -231,7 +243,7 @@ sub htmlize ($@) {
     # $ENV{"LC_ALL"} = "en_US.UTF-8";
     my $pid = open2(*PANDOC_IN, *PANDOC_OUT, $command,
                     '-f', $format,
-                    '-t', 'html',
+                    '-t', $target_format,
                     @args);
 
     error("Unable to open $command") unless $pid;
