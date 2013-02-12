@@ -13,7 +13,7 @@ sub import {
 
     hook(type => "getsetup", id => "pandoc", call => \&getsetup);
     hook(type => "htmlize", id => $markdown_ext,
-	 # longname => "Pandoc Markdown",
+     # longname => "Pandoc Markdown",
          call => sub { htmlize("markdown", @_) });
     if ($config{pandoc_latex}) {
         hook(type => "htmlize", id => "tex",
@@ -22,6 +22,14 @@ sub import {
     if ($config{pandoc_rst}) {
         hook(type => "htmlize", id => "rst",
              call => sub { htmlize("rst", @_) });
+    }
+    if ($config{pandoc_textile}) {
+        hook(type => "htmlize", id => "textile",
+             call => sub { htmlize("textile", @_) });
+    }
+    if ($config{pandoc_mediawiki}) {
+        hook(type => "htmlize", id => "mediawiki",
+             call => sub { htmlize("mediawiki", @_) });
     }
 }
 
@@ -57,6 +65,20 @@ sub getsetup () {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of reStructuredText documents",
+        safe => 0,
+        rebuild => 1,
+    },
+    pandoc_textile => {
+        type => "boolean",
+        example => 0,
+        description => "Enable Pandoc processing of Textile documents",
+        safe => 0,
+        rebuild => 1,
+    },
+    pandoc_mediawiki => {
+        type => "boolean",
+        example => 0,
+        description => "Enable Pandoc processing of MediaWiki documents",
         safe => 0,
         rebuild => 1,
     },
@@ -111,8 +133,22 @@ sub getsetup () {
     },
     pandoc_math => {
         type => "string",
-        example => "unicode",
+        example => "mathjax",
         description => "Process TeX math using",
+        safe => 0,
+        rebuild => 1,
+    },
+    pandoc_bibliography => {
+        type => "string",
+        example => "",
+        description => "Path to bibliography file",
+        safe => 0,
+        rebuild => 1,
+    },
+    pandoc_csl => {
+        type => "string",
+        example => "",
+        description => "Path to CSL file (for references and bibliography)",
         safe => 0,
         rebuild => 1,
     },
@@ -159,9 +195,16 @@ sub htmlize ($@) {
         push @args, '--indented-code-classes=' . $config{pandoc_codeclasses};
     };
 
+    if ($config{pandoc_bibliography}) {
+        push @args, '--bibliography="'.$config{pandoc_bibliography}.'"';
+    }
+
+    if ($config{pandoc_csl}) {
+        push @args, '--csl="'.$config{pandoc_csl}.'"';
+    }
 
     for ($config{pandoc_math}) {
-        if (/^mathjax$/) { 
+        if (/^mathjax$/) {
             push @args, '--mathjax=/dev/null';
         }
         elsif (/^jsmath$/) {
