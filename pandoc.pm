@@ -7,6 +7,7 @@ use strict;
 use IkiWiki;
 use FileHandle;
 use IPC::Open2;
+use JSON;
 
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
@@ -124,7 +125,7 @@ sub htmlize ($@) {
     my %params = @_;
     my $page = $params{page};
 
-    local(*PANDOC_IN, *PANDOC_OUT);
+    local(*PANDOC_IN, *JSON_IN, *JSON_OUT, *PANDOC_OUT);
     my @args;
 
     my $command = $config{pandoc_command} || "/usr/local/bin/pandoc";
@@ -185,9 +186,16 @@ sub htmlize ($@) {
         else { }
     }
 
-    # $ENV{"LC_ALL"} = "en_US.UTF-8";
-    my $pid = open2(*PANDOC_IN, *PANDOC_OUT, $command,
+    # Convert to intermediate JSON format so that the title block
+    # can be parsed out
+    my $pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
                     '-f', $format,
+                    '-t', 'json',
+                    @args);
+
+    # $ENV{"LC_ALL"} = "en_US.UTF-8";
+    $pid = open2(*PANDOC_IN, *JSON_IN, $command,
+                    '-f', 'json',
                     '-t', 'html',
                     @args);
 
@@ -200,12 +208,46 @@ sub htmlize ($@) {
     print PANDOC_OUT $content;
     close PANDOC_OUT;
 
+    my $json_content = <JSON_OUT>;
+    close JSON_OUT;
+
+    print JSON_IN $json_content;
+    close JSON_IN;
+
     my @html = <PANDOC_IN>;
     close PANDOC_IN;
 
     waitpid $pid, 0;
 
     $content = Encode::decode_utf8(join('', @html));
+
+    # Parse the title block out of the JSON and set the meta values
+    my @perl_content = @{decode_json($json_content)};
+    my %header_section = %{$perl_content[0]};
+    my @doc_title = @{$header_section{'docTitle'}};
+    my @doc_authors = @{$header_section{'docAuthors'}};
+    my $num_authors = @doc_authors;
+    my @primary_author = ();
+    if ($num_authors gt 0) {
+        my @primary_author = @{$doc_authors[0]};
+    }
+    my @doc_date = @{$header_section{'docDate'}};
+
+    sub compile_string {
+        my (@uncompiled_string) = @_;
+        my @string_without_spaces;
+        foreach my $word_or_space(@uncompiled_string) {
+            if (ref($word_or_space) eq "HASH") {
+                push @string_without_spaces, $word_or_space->{"Str"};
+            }
+        }
+        return join " ", @string_without_spaces;
+    }
+
+    $pagestate{$page}{meta}{title} = compile_string @doc_title;
+    $pagestate{$page}{meta}{author} = compile_string @primary_author;
+    $pagestate{$page}{meta}{date} = compile_string @doc_date;
+
     return $content;
 }
 
