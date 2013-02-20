@@ -244,9 +244,19 @@ sub htmlize ($@) {
         return join " ", @string_without_spaces;
     }
 
-    $pagestate{$page}{meta}{title} = compile_string @doc_title;
-    $pagestate{$page}{meta}{author} = compile_string @primary_author;
-    $pagestate{$page}{meta}{date} = compile_string @doc_date;
+    my $title = compile_string @doc_title;
+    my $author = compile_string @primary_author;
+    my $date = compile_string @doc_date;
+
+    if ($title) {
+        $pagestate{$page}{meta}{title} = $title;
+    }
+    if ($author) {
+        $pagestate{$page}{meta}{author} = $author;
+    }
+    if ($date) {
+        $pagestate{$page}{meta}{date} = $date;
+    }
 
     return $content;
 }
