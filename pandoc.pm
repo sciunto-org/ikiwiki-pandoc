@@ -234,14 +234,19 @@ sub htmlize ($@) {
     my @doc_date = @{$header_section{'docDate'}};
 
     sub compile_string {
+        # The uncompiled string is an array of hashes containing words and 
+        # string with the word "Space".
         my (@uncompiled_string) = @_;
-        my @string_without_spaces;
+        my $compiled_string = '';
         foreach my $word_or_space(@uncompiled_string) {
             if (ref($word_or_space) eq "HASH") {
-                push @string_without_spaces, $word_or_space->{"Str"};
+                $compiled_string .= $word_or_space->{"Str"};
+            }
+            else {
+                $compiled_string .= ' ';
             }
         }
-        return join " ", @string_without_spaces;
+        return $compiled_string;
     }
 
     my $title = compile_string @doc_title;
