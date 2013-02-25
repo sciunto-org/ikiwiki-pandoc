@@ -188,18 +188,20 @@ sub htmlize ($@) {
 
     # Convert to intermediate JSON format so that the title block
     # can be parsed out
-    my $pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
+    my $to_json_pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
                     '-f', $format,
                     '-t', 'json',
                     @args);
 
+    error("Unable to open $command") unless $to_json_pid;
+
     # $ENV{"LC_ALL"} = "en_US.UTF-8";
-    $pid = open2(*PANDOC_IN, *JSON_IN, $command,
+    my $to_html_pid = open2(*PANDOC_IN, *JSON_IN, $command,
                     '-f', 'json',
                     '-t', 'html',
                     @args);
 
-    error("Unable to open $command") unless $pid;
+    error("Unable to open $command") unless $to_html_pid;
 
     # Workaround for perl bug (#376329)
     require Encode;
@@ -211,13 +213,15 @@ sub htmlize ($@) {
     my $json_content = <JSON_OUT>;
     close JSON_OUT;
 
+    waitpid $to_json_pid, 0;
+
     print JSON_IN $json_content;
     close JSON_IN;
 
     my @html = <PANDOC_IN>;
     close PANDOC_IN;
 
-    waitpid $pid, 0;
+    waitpid $to_html_pid, 0;
 
     $content = Encode::decode_utf8(join('', @html));
 
