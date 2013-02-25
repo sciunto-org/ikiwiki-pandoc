@@ -244,7 +244,9 @@ sub htmlize ($@) {
         my $compiled_string = '';
         foreach my $word_or_space(@uncompiled_string) {
             if (ref($word_or_space) eq "HASH") {
-                $compiled_string .= $word_or_space->{"Str"};
+                if ($word_or_space->{"Str"}) {
+                    $compiled_string .= $word_or_space->{"Str"};
+                }
             }
             else {
                 $compiled_string .= ' ';
