@@ -258,13 +258,13 @@ sub htmlize ($@) {
     my $date = compile_string @doc_date;
 
     if ($title) {
-        $pagestate{$page}{meta}{title} = quotemeta($title);
+        $pagestate{$page}{meta}{title} = $title;
     }
     if ($author) {
-        $pagestate{$page}{meta}{author} = quotemeta($author);
+        $pagestate{$page}{meta}{author} = $author;
     }
     if ($date) {
-        $pagestate{$page}{meta}{date} = quotemeta($date);
+        $pagestate{$page}{meta}{date} = $date;
     }
 
     return $content;
