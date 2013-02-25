@@ -233,7 +233,7 @@ sub htmlize ($@) {
     my $num_authors = @doc_authors;
     my @primary_author = ();
     if ($num_authors gt 0) {
-        my @primary_author = @{$doc_authors[0]};
+        @primary_author = @{$doc_authors[0]};
     }
     my @doc_date = @{$header_section{'docDate'}};
 
@@ -258,13 +258,13 @@ sub htmlize ($@) {
     my $date = compile_string @doc_date;
 
     if ($title) {
-        $pagestate{$page}{meta}{title} = $title;
+        $pagestate{$page}{meta}{title} = quotemeta($title);
     }
     if ($author) {
-        $pagestate{$page}{meta}{author} = $author;
+        $pagestate{$page}{meta}{author} = quotemeta($author);
     }
     if ($date) {
-        $pagestate{$page}{meta}{date} = $date;
+        $pagestate{$page}{meta}{date} = quotemeta($date);
     }
 
     return $content;
