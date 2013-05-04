@@ -22,6 +22,7 @@ Authors
 * Jason Blevin (Original author) <http://jblevins.org/projects/ikiwiki/>
 * Jim Pryor <http://www.jimpryor.net/>
 * Beni Cherniavsky-Paskin <https://github.com/cben>
+* Ryan Burgoyne <https://github.com/rburgoyne>
 * François Boulogne
 
 Install
