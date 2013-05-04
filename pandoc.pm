@@ -7,6 +7,7 @@ use strict;
 use IkiWiki;
 use FileHandle;
 use IPC::Open2;
+use JSON;
 
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
@@ -124,7 +125,7 @@ sub htmlize ($@) {
     my %params = @_;
     my $page = $params{page};
 
-    local(*PANDOC_IN, *PANDOC_OUT);
+    local(*PANDOC_IN, *JSON_IN, *JSON_OUT, *PANDOC_OUT);
     my @args;
 
     my $command = $config{pandoc_command} || "/usr/local/bin/pandoc";
@@ -185,13 +186,22 @@ sub htmlize ($@) {
         else { }
     }
 
-    # $ENV{"LC_ALL"} = "en_US.UTF-8";
-    my $pid = open2(*PANDOC_IN, *PANDOC_OUT, $command,
+    # Convert to intermediate JSON format so that the title block
+    # can be parsed out
+    my $to_json_pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
                     '-f', $format,
+                    '-t', 'json',
+                    @args);
+
+    error("Unable to open $command") unless $to_json_pid;
+
+    # $ENV{"LC_ALL"} = "en_US.UTF-8";
+    my $to_html_pid = open2(*PANDOC_IN, *JSON_IN, $command,
+                    '-f', 'json',
                     '-t', 'html',
                     @args);
 
-    error("Unable to open $command") unless $pid;
+    error("Unable to open $command") unless $to_html_pid;
 
     # Workaround for perl bug (#376329)
     require Encode;
@@ -200,12 +210,65 @@ sub htmlize ($@) {
     print PANDOC_OUT $content;
     close PANDOC_OUT;
 
+    my $json_content = <JSON_OUT>;
+    close JSON_OUT;
+
+    waitpid $to_json_pid, 0;
+
+    print JSON_IN $json_content;
+    close JSON_IN;
+
     my @html = <PANDOC_IN>;
     close PANDOC_IN;
 
-    waitpid $pid, 0;
+    waitpid $to_html_pid, 0;
 
     $content = Encode::decode_utf8(join('', @html));
+
+    # Parse the title block out of the JSON and set the meta values
+    my @perl_content = @{decode_json($json_content)};
+    my %header_section = %{$perl_content[0]};
+    my @doc_title = @{$header_section{'docTitle'}};
+    my @doc_authors = @{$header_section{'docAuthors'}};
+    my $num_authors = @doc_authors;
+    my @primary_author = ();
+    if ($num_authors gt 0) {
+        @primary_author = @{$doc_authors[0]};
+    }
+    my @doc_date = @{$header_section{'docDate'}};
+
+    sub compile_string {
+        # The uncompiled string is an array of hashes containing words and 
+        # string with the word "Space".
+        my (@uncompiled_string) = @_;
+        my $compiled_string = '';
+        foreach my $word_or_space(@uncompiled_string) {
+            if (ref($word_or_space) eq "HASH") {
+                if ($word_or_space->{"Str"}) {
+                    $compiled_string .= $word_or_space->{"Str"};
+                }
+            }
+            else {
+                $compiled_string .= ' ';
+            }
+        }
+        return $compiled_string;
+    }
+
+    my $title = compile_string @doc_title;
+    my $author = compile_string @primary_author;
+    my $date = compile_string @doc_date;
+
+    if ($title) {
+        $pagestate{$page}{meta}{title} = $title;
+    }
+    if ($author) {
+        $pagestate{$page}{meta}{author} = $author;
+    }
+    if ($date) {
+        $pagestate{$page}{meta}{date} = $date;
+    }
+
     return $content;
 }
 
