@@ -11,6 +11,7 @@ inline TeX using a variety of methods. And, if Pandoc was compiled with the
 -fhighlighting, it can be configured to apply syntax highlighting to code
 blocks and `inline code spans`.
 
+* <http://ikiwiki.info/plugins/contrib/pandoc/>
 
 License
 =======
