@@ -202,6 +202,11 @@ See also <http://ikiwiki.info/todo/latex>, which describes a number of other wor
 Ikiwiki.)
 
 
+#### FAQ
+
+See this article if you encounter issues with https: <http://www.mathjax.org/resources/faqs/#problem-https> and change URLs in templates.
+
+
 ### TeX macros ###
 
 Another nice Pandoc feature is that it parses and uses `\newcommand` and `\renewcommand` macro definitions:
