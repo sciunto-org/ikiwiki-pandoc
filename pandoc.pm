@@ -283,13 +283,13 @@ sub htmlize ($@) {
     my @perl_content = @{decode_json($json_content)};
     my %header_section = %{$perl_content[0]};
     my @doc_title = @{$header_section{'docTitle'}};
-    my @doc_authors = (defined(@{$header_section{'docAuthors'}}) || ['']);
-    my $num_authors = (defined(@doc_authors) || ['']);
+    my @doc_authors = @{$header_section{'docAuthors'}} if ref $header_section{'docAuthors'} eq 'ARRAY';
+    my $num_authors = scalar @doc_authors;
     my @primary_author = ();
     if ($num_authors gt 0) {
         @primary_author = @{$doc_authors[0]};
     }
-    my @doc_date = (defined(@{$header_section{'docDate'}}) || ['']);
+    my @doc_date = @{$header_section{'docDate'}} if ref $header_section{'docDate'} eq 'ARRAY';
 
     sub compile_string {
         # The uncompiled string is an array of hashes containing words and
