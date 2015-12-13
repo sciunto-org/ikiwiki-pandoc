@@ -19,6 +19,8 @@ sub import {
     }
 
     hook(type => "getsetup", id => "pandoc", call => \&getsetup);
+    hook(type => "pagetemplate", id => "pandoc", call => \&pagetemplate);
+
     if (ref $markdown_ext eq 'ARRAY') {
         foreach my $mde (@$markdown_ext) {
             hook(type => 'htmlize', id => $mde,
@@ -176,21 +178,28 @@ sub getsetup () {
     pandoc_math => {
         type => "string",
         example => "mathjax",
-        description => "How to process TeX math; e.g. mathjax, katex, or mathml",
+        description => "How to process TeX math (mathjax, katex, mathml, mathjs, latexmathml, asciimathml, mimetex, webtex)",
         safe => 0,
         rebuild => 1,
     },
     pandoc_math_custom_js => {
         type => "string",
         example => "",
-        description => "Link to local/custom script for math (requires appropriate pandoc_math setting)",
+        description => "Link to local/custom javascript for math (or to server-side script for mimetex and webtex)",
+        safe => 0,
+        rebuild => 1,
+    },
+    pandoc_math_custom_css => {
+        type => "string",
+        example => "",
+        description => "Link to local/custom CSS for math (requires appropriate pandoc_math setting)",
         safe => 0,
         rebuild => 1,
     },
     pandoc_bibliography => {
         type => "string",
         example => "",
-        description => "Path to bibliography file",
+        description => "Path to default bibliography file",
         safe => 0,
         rebuild => 1,
     },
@@ -255,12 +264,19 @@ sub htmlize ($@) {
 
     # How to process math. Normally either mathjax or katex.
     my %mathconf = map {($_=>"--$_")} qw(
-        jsmath mathjax latexmathml asciimathml mimetex mathml katex mimetex webtex
+        jsmath mathjax latexmathml asciimathml mathml katex mimetex webtex
     );
+    my %with_urls = qw/mimetex 1 webtex 1/;
     my $mathopt = $1 if $config{pandoc_math} =~ /(\w+)/;
     my $custom_js = $config{pandoc_math_custom_js} || '';
     if ($mathopt && $mathconf{$mathopt}) {
-        push @args, $mathconf{$mathopt};
+        if ($with_urls{$mathopt} && $custom_js) {
+            # In these cases, the 'custom js' is a misnomer: actually a server-side script
+            push @args, $mathconf{$mathopt} ."=". $custom_js;
+        } else {
+            push @args, $mathconf{$mathopt};
+        }
+        $pagestate{$page}{meta}{"pandoc_math"} = $mathopt;
         $pagestate{$page}{meta}{"pandoc_math_$mathopt"} = 1;
         $pagestate{$page}{meta}{"pandoc_math_custom_js"} = $custom_js if $custom_js;
     }
@@ -297,8 +313,8 @@ sub htmlize ($@) {
     }
 
     # Get some selected meta attributes, more specifically:
-    # (title date bibliography csl subtitle abstract summary version
-    # author references [+ num_authors primary_author])
+    # (title date bibliography csl subtitle abstract summary description
+    #  version references author [+ num_authors primary_author])
 
     sub compile_string {
         # Partially represents an item from the data structure in meta as a string.
@@ -316,30 +332,38 @@ sub htmlize ($@) {
     }
 
     my %scalar_meta = map { ($_=>undef) } qw(
-        title date bibliography csl subtitle abstract summary version);
+        title date bibliography csl subtitle abstract summary description version);
     my %list_meta = map { ($_=>[]) } qw/author references/;
+    my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
-        $scalar_meta{$k} = compile_string($meta->{$k}->{c}) if $meta->{$k};
+        next unless $meta->{$k};
+        $scalar_meta{$k} = compile_string($meta->{$k}->{c});
         $pagestate{$page}{meta}{$k} = $scalar_meta{$k};
+        $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
+
     }
     foreach my $k (keys %list_meta) {
-        $list_meta{$k} = $meta->{$k}->{'c'} if $meta->{$k};
+        next unless $meta->{$k};
+        $list_meta{$k} = $meta->{$k}->{'c'};
         $list_meta{$k} = [ map { compile_string($_) } @{$list_meta{$k}} ] if $k eq 'author';
-        $pagestate{$page}{meta}{$k} = $list_meta{$k};
+        $have_bibl = 1 if $k eq 'references';
+        $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
     }
     my $num_authors = scalar @{ $list_meta{author} };
     $scalar_meta{num_authors} = $num_authors;
     $pagestate{$page}{meta}{num_authors} = $num_authors;
     if ($num_authors) {
         $scalar_meta{primary_author} = $list_meta{author}->[0];
-        $pagestate{$page}{meta}{primary_author} = $list_meta{author}->[0];
+        $pagestate{$page}{meta}{author} = join(', ', @{$list_meta{author}});
+        $pagestate{$page}{meta}{pandoc_primary_author} = $scalar_meta{primary_author}
     }
 
     # The bibliography may be set in a Meta block in the page or in the .setup file.
     # If both are present, the Meta block has precedence.
     for my $bibl ($scalar_meta{bibliography}, $config{pandoc_bibliography}) {
         if ($bibl) {
-            $pagestate{$page}{meta}{bibliography} = $bibl;
+            $have_bibl = 1;
+            $pagestate{$page}{meta}{pandoc_bibliography} = $bibl;
             push @args, '--bibliography='.$bibl;
             last;
         }
@@ -347,16 +371,18 @@ sub htmlize ($@) {
     # Similarly for the CSL file...
     for my $cslfile ($scalar_meta{csl}, $config{pandoc_csl}) {
         if ($cslfile) {
-            $pagestate{$page}{meta}{csl} = $cslfile;
+            $pagestate{$page}{meta}{pandoc_csl} = $cslfile;
             push @args, '--csl='.$cslfile;
             last;
         }
     }
 
-    # In any case, turn on the pandoc-citeproc filter, since
-    # we may have the bibliography under 'references' in the meta section.
-    my $citeproc = $config{pandoc_citeproc} || 'pandoc-citeproc';
-    push @args, "--filter=$citeproc";
+    # Turn on the pandoc-citeproc filter if either global bibliography,
+    # local bibliography or a 'references' key in Meta is present.
+    if ($have_bibl) {
+        my $citeproc = $config{pandoc_citeproc} || 'pandoc-citeproc';
+        push @args, "--filter=$citeproc";
+    }
 
     # Other pandoc filters. Note that currently there is no way to
     # configure a filter to run before pandoc-citeproc has done its work.
@@ -367,8 +393,6 @@ sub htmlize ($@) {
             push @args, "--filter=$filter";
         }
     }
-
-
 
     my $to_html_pid = open2(*PANDOC_IN, *JSON_IN, $command,
                     '-f', 'json',
@@ -388,4 +412,15 @@ sub htmlize ($@) {
     return $content;
 }
 
-1
+
+sub pagetemplate (@) {
+    my %params = @_;
+    my $page = $params{page};
+    my $template = $params{template};
+    foreach my $k (keys %{$pagestate{$page}{meta}}) {
+        next unless $k =~ /^pandoc_/;
+        $template->param($k => $pagestate{$page}{meta}{$k});
+    }
+}
+
+1;
