@@ -3,89 +3,104 @@ ikiwiki-pandoc
 
 Pandoc plugin for ikiwiki.
 
-Pandoc <http://johnmacfarlane.net/pandoc/> has a richer syntax and more
-flexible configuration than Markdown, and is also able to parse a variety of
-other syntaxes. This plugin can be configured to generate wiki pages from LaTeX
-and reST sources, as well as markdown. It can also be configured to convert
-inline TeX using a variety of methods. And, if Pandoc was compiled with the
--fhighlighting, it can be configured to apply syntax highlighting to code
-blocks and `inline code spans`.
+Pandoc <http://johnmacfarlane.net/pandoc/> has a richer syntax and more flexible configuration than Markdown, and is also able to parse a variety of other syntaxes. This plugin can be configured to generate wiki pages from LaTeX, reST, mediawiki, textile, OPML or Emacs Org sources, as well as markdown. It can also be configured to convert inline TeX math using a variety of methods. Finally, if Pandoc was compiled with the `-fhighlighting` option, it will apply syntax highlighting to code blocks and `inline code spans`.
 
 * <http://ikiwiki.info/plugins/contrib/pandoc/>
 
-License
-=======
-
-GPLv2
-
-Authors
-=======
-* Jason Blevin (Original author) <http://jblevins.org/projects/ikiwiki/>
-* Jim Pryor <http://www.jimpryor.net/>
-* Beni Cherniavsky-Paskin <https://github.com/cben>
-* Ryan Burgoyne <https://github.com/rburgoyne>
-* Baldur Kristinsson <https://github.com/bk>
-* François Boulogne
 
 Install
 =======
 
-    # Install the library
+    # (1) Install the library.
+    # Alternatively, can be installed in /usr/share/perl5 or similar.
+    #
     mkdir -p ~/.ikiwiki/IkiWiki/Plugin
     cp pandoc.pm ~/.ikiwiki/IkiWiki/Plugin
-    # Alternatively, can be installed in /usr/share/perl5
 
-    # Install templates
-    cp *tmpl /usr/share/ikiwiki/templates
-    cd /usr/share/ikiwiki/templates
-    mv page.tmpl page.tmpl.ori
-    ln -s mathjax.tmpl page.tmpl
+    # (2) Install template (for math support).
+    # $TEMPLATEDIR is often /usr/share/ikiwiki/templates by default.
+    # Check the `templatedir` setting of your *.setup file.
+    #
+    mv $TEMPLATEDIR/page.tmpl $TEMPLATEDIR/page.tmpl.orig
+    cp page.tmpl $TEMPLATEDIR
 
-    # Install javascript
-    cp *js /usr/share/ikiwiki/javascript
+    # (3) Possibly install javascript (only for mathml).
+    # $UNDERLAYDIR is often /usr/share/ikiwiki and depends on the
+    # settings `underlaydir` and `add_underlays` in your *.setup file
+    #
+    cp *.js $UNDERLAYDIR/javascript/
 
+    # (4) Activate module:
+    #     add 'pandoc' to `add_plugins` list in your *.setup file
 
+**Note:** If you want to put mathematics markup into your pages or blog entries, you are likely to run into problems with the `smiley` plugin, so you should probably disable it by adding it to the `disable_plugins` list in your `*.setup` file.
 
+## Options
 
+The following options are available in the `*.setup` file. Some of them are also available in the web settings.
 
-## Options ##
+### Program paths
 
-### Available in Ikiwiki's web preferences ###
+* `pandoc_command` (string): Path to pandoc executable. If not set, looks for `pandoc` in your `$PATH`.
 
-1. File extension for Markdown files (defaults to mdwn)
-
-1. Use smart quotes, dashes, and ellipses
-
-1. Generate ASCII instead of UTF8.
-
-1. Number section headings in generated pages
-
-1. Wrap sections in `<div>` tags (or `<section>` tags in HTML5), and
-   attach identifiers to the `<div>` rather than th header itself. This
-   allows the section to be styled or manipulated via javascript.
-
-1. Obfuscate emails using HTML character references
-
-1. Generate HTML5 (the Ikiwiki html5 setting should also be set)
-
-1. Classes to use for all indented code blocks (these can also be 
-   specified differently from block to block; see below)
+* `pandoc_citeproc` (string): Path to pandoc-citeproc executable (for references/bibliography handling). If not set, looks for it in `$PATH`.
 
 
-### Have to be configured manually in your wiki's *.setup file ###
+### Input format support
 
-1. Path to pandoc executable (defaults to /usr/local/bin/pandoc)
+* `pandoc_markdown_ext` (string): Markdown file extension(s) for pandoc handling. Multiple comma-separated extensions may be specified, e.g. `md,mdwn,markdown,pd`.
 
-1. Enable Pandoc processing of LaTeX documents
+* `pandoc_rst` (boolean): If true, enables processing of ReST documents (fixed extension: `.rst`).
 
-1. Enable Pandoc processing of reStructuredText documents
+* `pandoc_textile` (boolean): If true, enables processing of textile documents (fixed extension: `.textile`).
 
-1. Method for handling inline TeX (see below)
+* `pandoc_mediawiki` (boolean): If true, enables processing of MediaWiki documents (fixed extension: `.mediawiki`).
+
+* `pandoc_org` (boolean): If true, enables processing of Emacs Org-mode documents (fixed extension: `.org`).
+
+* `pandoc_opml` (boolean): If true, enables processing of OPML documents (fixed extension: `.opm`).
+
+* `pandoc_latex` (boolean): If true, enables processing of LaTeX documents (fixed extension: `.tex`).
 
 
-## Details ##
+### Settings for mathematics display
 
-### Syntax Coloring ###
+Pandoc's variant of markdown supports TeX math delimited with `$...$` (inline math) and `$$ ... $$` (display math). There are several possibilities with regard to the way in which this appears in the HTML output. For a more detailed description, see later in this document.
+
+These settings have no effect unless you have activated the `page.tmpl` file which comes with this module (or have inserted an appropriate math support block into your own template).
+
+* `pandoc_math` (string): base setting for math support. Can be one of `mathjax`, `katex`, `mathml`, `asciimathml`, `jsmath`, `latexmathml`, `mimetex`, or `webtex`. For most people, `mathjax` is recommended.
+
+* `pandoc_math_custom_js` (string): Optionally specify a javascript URL to load support for the math display option specified under `pandoc_math`. You would use this if you e.g. have a local version of MathJax or KaTeX. If you have picked `mathml`, it would probably be sensible to point to the `mathml.js` script which comes with this module. For `mimetex` and `webtex`, this setting should not point to a javascript file but to a server-side (CGI) URL which returns an image for insertion into the page at the appropriate point.
+
+* `pandoc_math_custom_css`: Optional custom CSS URL to control the appearances of math.
+
+### Settings for references and bibliography
+
+* `pandoc_bibliography` (string): Full path to the (BibTeX-format) bibliography file to use by default. If this is empty, you must specify either `bibliography` (filename) or `references` (structured list of references) in a YAML meta-block in the page itself.
+
+* `pandoc_csl` (string): CSL file to use by default to format in-line references and the list of references. If this is empty, the default Chicago author-year format will be used, unless you specify a CSL file using `csl` in a YAML meta-block in the page itself.
+
+### Output tweaking
+
+* `pandoc_smart` (boolean): Whether smart quotes and other typographic niceties are enabled.
+
+* `pandoc_obfuscate` (boolean): Whether to detect and obfuscate email adresses automatically.
+
+* `pandoc_html5` (boolean): Whether Pandoc should produce HTML5.
+
+* `pandoc_ascii` (boolean): Produce ASCII output rather than UTF-8.
+
+* `pandoc_numsect` (boolean): Whether to number sections.
+
+* `pandoc_sectdiv` (boolean): Attach IDs to section DIVs instead of to headers.
+
+* `pandoc_codeclasses` (string): CSS classes to add to indented code blocks. One may also specify CSS classes individually for each block.
+
+
+## Details
+
+### Syntax Coloring
 
 Pandoc can be configured to apply classes globally to all its inline code blocks (for example, `numberLines` or 
 `perl`). Alternatively, code blocks can be written in this style:
@@ -147,67 +162,46 @@ Note: This functionality overlaps somewhat with Ikiwiki's `highlight` plugin and
     """]]
 
 
-### Tables ###
+### Tables
 
 Pandoc has a native [table-handling syntax](http://johnmacfarlane.net/pandoc/README.html#tables). This overlaps 
 somewhat with Ikiwiki's `table` directive. Here too, you'll have to decide which facility better suits your needs.
 
 
-### Inline TeX processing ###
+### Inline TeX processing for math
 
 Pandoc recognizes inline TeX and can be configured to display it on the web using a variety of tools.
 
-1. You can use MathJax <http://www.mathjax.org/>. This requires copying the `mathjax.tmpl` file that accompanies this 
-plugin to a template directory seen by your wiki. Rename the file to `page.tmpl`. (Available since Pandoc 1.8.)
+1. MathJax <http://www.mathjax.org/> is the option recommended for most people, since it combines extensive support for TeX commands with good browser support.
 
-1. jsMath is the predecessor to MathJax. It doesn't give as nice results, and is harder to install, but it's also an 
-option. Download jsMath and jsMath-fonts <http://www.math.union.edu/~dpvc/jsMath/> and install them so that they're 
-served from the root of your server, that is, from `/jsMath/...` Also, copy the file `jsmath.tmpl` that accompanies 
-this plugin to a template directory seen by your wiki. Rename the file to `page.tmpl`.
+2. KaTeX (<https://khan.github.io/KaTeX/>) is faster and more lightweight than MathJax but does not support as many TeX commands. It also does not behave as nicely if there is an error in your TeX markup.
 
-1. A different JavaScript solution is LatexMathML <http://math.etsu.edu/LaTeXMathML/>. Again, this gives less good 
-results than MathJax, but it's easier to install than jsMath. Download the `LaTeXMathML.js` and 
-`LaTeXMathML.standardarticle.css` files and install them so that they're served from the root of your server.  Also, 
-copy the file `latexmathml.tmpl` that accompanies this plugin to a template directory seen by your wiki. Rename the 
-file to `page.tmpl`.
+3. jsMath is the predecessor to MathJax. It doesn't give as nice results, and is harder to install. Download jsMath and jsMath-fonts <http://www.math.union.edu/~dpvc/jsMath/> and install them to your server. Set `pandoc_math_custom_js` appropriately.
 
-1. Instead of using JavaScript, a different approach is to build and install a cgi on your server. MathTeX 
-<http://www.forkosh.com/mathtex.html> gives good results, but needs LaTeX to be available on the server. This plugin 
-assumes that if you're using MathTeX, it will be served from `/cgi-bin/mathtex.cgi`.
+4. A different JavaScript solution is LatexMathML <http://math.etsu.edu/LaTeXMathML/>.
 
-1. MimeTeX <http://www.forkosh.com/mimetex.html> is the predecessor to MathTeX. It doesn't give as nice results, but 
-will work on less equipped servers. This plugin assumes that if you're using MimeTeX, it will be served from 
-`/cgi-bin/mimetex.cgi`.
+5. Asciimathml <http://asciimath.org/> is an alternative, non-TeX syntax for math markup, which is supported by Pandoc if you have the correct setting in `pandoc_math`.
 
-1. Or you could use a third-party cgi, such as Google Charts API <http://code.google.com/apis/chart/>. (Available since 
-Pandoc 1.6.)
+6. The `mimetex` setting for `pandoc_math` is used for CGI-based image solutions and requires you to set `pandoc_math_custom_js` to the URL of an appropriate server-side script. Two of these are  MathTeX <http://www.forkosh.com/mathtex.html> (which requires LaTeX to be installed) and MimeTeX <http://www.forkosh.com/mimetex.html> (which doesn't).
 
-1. Another option is to directly render the TeX into MathML. Browser support for displaying MathML is coming slowly. 
-Firefox supports it well, but WebKit/Chrome is only beginning to. To process inline TeX via this method, copy the file 
-`mathml.tmpl` that accompanies this plugin to a template directory seen by your wiki. Rename the file to `page.tmpl`. 
-You should also arrange for the file `mathml.js` to be served from the root of your server; this file helps provide a 
-better fallbacks for browsers that can't display the MathML. This method also requires htmlscrubber to be disabled, at 
-least for pages containing MathML. (Available since Pandoc 1.5.)
+7. The `webtex` setting is similar to `mimetex` and uses the Google Charts API <http://code.google.com/apis/chart/> by default.
 
-1. If none of the other options are enabled, Pandoc will attempt to render inline TeX using Unicode characters, in so 
-far as that's possible.
+9. Native MathML support (the `mathml` setting for `pandoc_math`) is only present in Mozilla-based browsers, i.e. Firefox. There are Javascript solutions to emulate this support in other browsers, e.g. through MathJax. The `mathml.js` file which comes with this module is one such possibility. If you opt for using MathML you should enable this through the `pandoc_math_custom_js` setting. Note that if you pick `mathml`, you must disable the `htmlscrubber` plugin.
+
+10. If none of the other options are enabled, Pandoc will attempt to render inline TeX using Unicode characters, in so far as that's possible.
 
 
-If none of these options work for you, you could check out the [teximg plugin](http://ikiwiki.info/plugins/teximg/); 
-this works something like MathTex, above. You could also look into using
-`itex2MML`; Jason Blevins <http://jblevins.org/projects/ikiwiki/> has a plugin
-for using that tool together with Markdown. (A newer version is mentioned at <http://ikiwiki.info/todo/mdwn_itex/>.)
+If none of these options work for you, you could check out the [teximg plugin](http://ikiwiki.info/plugins/teximg/); this works something like MathTex, above. You could also look into using `itex2MML`; Jason Blevins <http://jblevins.org/projects/ikiwiki/> has a plugin for using that tool together with Markdown. (A newer version is mentioned at <http://ikiwiki.info/todo/mdwn_itex/>.)
 
-See also <http://ikiwiki.info/todo/latex>, which describes a number of other works-in-progress for rendering LaTeX in 
-Ikiwiki.)
+See also <http://ikiwiki.info/todo/latex>, which describes a number of other  works-in-progress for rendering LaTeX in Ikiwiki.)
 
 
-#### FAQ
+### FAQ
 
 See this article if you encounter issues with https: <http://www.mathjax.org/resources/faqs/#problem-https> and change URLs in templates.
 
 
-### TeX macros ###
+### TeX macros
 
 Another nice Pandoc feature is that it parses and uses `\newcommand` and `\renewcommand` macro definitions:
 
@@ -215,3 +209,18 @@ Another nice Pandoc feature is that it parses and uses `\newcommand` and `\renew
     ...
     $\tuple{a, b, c}$
 
+
+License
+=======
+
+GPLv2
+
+Authors
+=======
+
+* Jason Blevin (Original author) <http://jblevins.org/projects/ikiwiki/>
+* Jim Pryor <http://www.jimpryor.net/>
+* Beni Cherniavsky-Paskin <https://github.com/cben>
+* Ryan Burgoyne <https://github.com/rburgoyne>
+* Baldur Kristinsson <https://github.com/bk>
+* François Boulogne
