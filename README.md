@@ -52,15 +52,15 @@ The following options are available in the `*.setup` file. Some of them are also
 
 * `pandoc_rst` (boolean): If true, enables processing of ReST documents (fixed extension: `.rst`).
 
+* `pandoc_latex` (boolean): If true, enables processing of LaTeX documents (fixed extension: `.tex`).
+
 * `pandoc_textile` (boolean): If true, enables processing of textile documents (fixed extension: `.textile`).
 
 * `pandoc_mediawiki` (boolean): If true, enables processing of MediaWiki documents (fixed extension: `.mediawiki`).
 
 * `pandoc_org` (boolean): If true, enables processing of Emacs Org-mode documents (fixed extension: `.org`).
 
-* `pandoc_opml` (boolean): If true, enables processing of OPML documents (fixed extension: `.opm`).
-
-* `pandoc_latex` (boolean): If true, enables processing of LaTeX documents (fixed extension: `.tex`).
+* `pandoc_opml` (boolean): If true, enables processing of OPML documents (fixed extension: `.opml`).
 
 
 ### Settings for mathematics display
