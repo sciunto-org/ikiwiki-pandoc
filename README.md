@@ -33,6 +33,12 @@ Install
     # (4) Activate module:
     #     add 'pandoc' to `add_plugins` list in your *.setup file
 
+    # (5) Refresh your *.setup file and rebuild your wiki:
+    # Between those two commands, you may want to tweek some options.
+    #
+    ikiwiki --changesetup *.setup
+    ikiwiki --rebuild --setup *.setup
+
 **Note:** If you want to put mathematics markup into your pages or blog entries, you are likely to run into problems with the `smiley` plugin, so you should probably disable it by adding it to the `disable_plugins` list in your `*.setup` file.
 
 ## Options
