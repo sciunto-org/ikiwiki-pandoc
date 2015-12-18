@@ -219,14 +219,5 @@ Another nice Pandoc feature is that it parses and uses `\newcommand` and `\renew
 License
 =======
 
-GPLv2
+GPLv2. See `LICENSE` for more details.
 
-Authors
-=======
-
-* Jason Blevin (Original author) <http://jblevins.org/projects/ikiwiki/>
-* Jim Pryor <http://www.jimpryor.net/>
-* Beni Cherniavsky-Paskin <https://github.com/cben>
-* Ryan Burgoyne <https://github.com/rburgoyne>
-* Baldur Kristinsson <https://github.com/bk>
-* François Boulogne

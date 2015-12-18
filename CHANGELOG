@@ -1,0 +1,13 @@
+0.2 (2015-12-18)
+================
+
+New version thanks to Baldur Kristinsson's contributions.
+
+* code upgrade to the last pandoc evolutions
+* fix for perl evolution
+* doc enhancements
+
+0.1 (unreleased)
+================
+
+* various contributions found on github merged together

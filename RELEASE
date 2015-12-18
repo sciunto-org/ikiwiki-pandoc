@@ -1,0 +1,7 @@
+How to release
+==============
+
+* Update CHANGELOG
+* git tag -a 'vX'
+* Create a tarball and upload it on the server
+    git archive master  --prefix 'bibtexparser/' | bzip2 > bibtexparser-x.y.tar.bz2
