@@ -8,7 +8,6 @@ use IkiWiki;
 use FileHandle;
 use IPC::Open2;
 use JSON;
-# use Data::Dumper;
 
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
