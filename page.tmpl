@@ -1,9 +1,5 @@
-<TMPL_IF HTML5><!DOCTYPE html>
-<html>
-<TMPL_ELSE><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-</TMPL_IF>
+<!DOCTYPE html>
+<TMPL_IF HTML_LANG_CODE><html lang="<TMPL_VAR HTML_LANG_CODE>" dir="<TMPL_VAR HTML_LANG_DIR>" xmlns="http://www.w3.org/1999/xhtml"><TMPL_ELSE><html xmlns="http://www.w3.org/1999/xhtml"></TMPL_IF>
 <head>
 <TMPL_IF DYNAMIC>
 <TMPL_IF FORCEBASEURL><base href="<TMPL_VAR FORCEBASEURL>" /><TMPL_ELSE>
@@ -12,32 +8,86 @@
 </TMPL_IF>
 <TMPL_IF HTML5><meta charset="utf-8" /><TMPL_ELSE><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></TMPL_IF>
 <title><TMPL_VAR TITLE></title>
+<TMPL_IF RESPONSIVE_LAYOUT><meta name="viewport" content="width=device-width, initial-scale=1" /></TMPL_IF>
 <TMPL_IF FAVICON>
 <link rel="icon" href="<TMPL_VAR BASEURL><TMPL_VAR FAVICON>" type="image/x-icon" />
 </TMPL_IF>
+
+<!-- pandoc.pm math-related additions start -->
+<TMPL_IF pandoc_math_mathjax>
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+<script type="text/javascript" async src="<TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML</TMPL_IF>"></script>
+</TMPL_IF>
+<TMPL_IF pandoc_math_katex>
+<link rel="stylesheet" href="<TMPL_IF pandoc_math_custom_css><TMPL_VAR pandoc_math_custom_css><TMPL_ELSE>//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.css</TMPL_IF>">
+<script src="<TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js</TMPL_IF>"></script>
+<script type="text/javascript">
+window.addEventListener("load", function(){var mathElements = document.getElementsByClassName("math");
+  for (var i=0; i < mathElements.length; i++) {
+    var texText = mathElements[i].firstChild;
+    katex.render(texText.data, mathElements[i]);
+  }
+});
+</script>
+</TMPL_IF>
+<TMPL_IF pandoc_math_jsmath>
+<!-- jsmath is obsolete, so we emulate it using mathjax -->
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({extensions: ["jsMath2jax.js"]});</script>
+<script src="<TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML</TMPL_IF>"></script>
+</TMPL_IF>
+<TMPL_IF pandoc_math_latexmathml>
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+<script type="text/javascript" src="<TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>http://math.etsu.edu/LaTeXMathML/LaTeXMathML.js</TMPL_IF>"></script>
+<link rel="stylesheet" type="text/css" href="<TMPL_IF pandoc_math_custom_css><TMPL_VAR pandoc_math_custom_css><TMPL_ELSE>http://math.etsu.edu/LaTeXMathML/LaTeXMathML.standardarticle.css</TMPL_IF>" />
+</TMPL_IF>
+<TMPL_IF pandoc_math_asciimathml>
+<!-- use mathjax, since the mathml rendering mode of asciimathml has poor browser support --->
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+<script src="<TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_HTMLorMML</TMPL_IF>"></script>
+</TMPL_IF>
+<TMPL_IF pandoc_math_mathml>
+<!--mathml: native for firefox/mozilla - other browsers need custom js -->
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+<TMPL_IF pandoc_math_custom_js><script src="<TMPL_VAR pandoc_math_custom_js>"></script></TMPL_IF>
+</TMPL_IF>
+<TMPL_IF pandoc_math_mimetex>
+<!-- mimetex for math with cgi script at <TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>/cgi-bin/mimetex.cgi</TMPL_IF> -->
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+</TMPL_IF>
+<TMPL_IF pandoc_math_webtex>
+<!-- webtex for math with <TMPL_IF pandoc_math_custom_js><TMPL_VAR pandoc_math_custom_js><TMPL_ELSE>a google charts api fallback URL</TMPL_IF> -->
+<TMPL_IF pandoc_math_custom_css><link rel="stylesheet" href="<TMPL_VAR pandoc_math_custom_css>"></TMPL_IF>
+</TMPL_IF>
+<!-- pandoc.pm math-related additions end -->
+
 <link rel="stylesheet" href="<TMPL_VAR BASEURL>style.css" type="text/css" />
 <TMPL_IF LOCAL_CSS>
 <link rel="stylesheet" href="<TMPL_VAR BASEURL><TMPL_VAR LOCAL_CSS>" type="text/css" />
 <TMPL_ELSE>
 <link rel="stylesheet" href="<TMPL_VAR BASEURL>local.css" type="text/css" />
 </TMPL_IF>
+
+<TMPL_UNLESS DYNAMIC>
 <TMPL_IF EDITURL>
 <link rel="alternate" type="application/x-wiki" title="Edit this page" href="<TMPL_VAR EDITURL>" />
 </TMPL_IF>
 <TMPL_IF FEEDLINKS><TMPL_VAR FEEDLINKS></TMPL_IF>
 <TMPL_IF RELVCS><TMPL_VAR RELVCS></TMPL_IF>
 <TMPL_IF META><TMPL_VAR META></TMPL_IF>
-<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+<TMPL_LOOP TRAILLOOP>
+<TMPL_IF PREVPAGE>
+<link rel="prev" href="<TMPL_VAR PREVURL>" title="<TMPL_VAR PREVTITLE>" />
+</TMPL_IF>
+<link rel="up" href="<TMPL_VAR TRAILURL>" title="<TMPL_VAR TRAILTITLE>" />
+<TMPL_IF NEXTPAGE>
+<link rel="next" href="<TMPL_VAR NEXTURL>" title="<TMPL_VAR NEXTTITLE>" />
+</TMPL_IF>
+</TMPL_LOOP>
+</TMPL_UNLESS>
+
 </head>
 <body>
-<noscript>
-<div style="color:#CC0000; text-align:center">
-<b>Warning: <a href="http://www.mathjax.org/">MathJax</a>
-requires JavaScript to process the mathematics on this page.<br>
-If your browser supports JavaScript, be sure it is enabled.</b>
-</div>
-<hr>
-</noscript>
 
 <TMPL_IF HTML5><article class="page"><TMPL_ELSE><div class="page"></TMPL_IF>
 
@@ -56,9 +106,11 @@ If your browser supports JavaScript, be sure it is enabled.</b>
 </TMPL_IF>
 </span>
 </span>
+<TMPL_UNLESS DYNAMIC>
 <TMPL_IF SEARCHFORM>
 <TMPL_VAR SEARCHFORM>
 </TMPL_IF>
+</TMPL_UNLESS>
 <TMPL_IF HTML5></header><TMPL_ELSE></div></TMPL_IF>
 
 <TMPL_IF HAVE_ACTIONS>
@@ -112,23 +164,35 @@ If your browser supports JavaScript, be sure it is enabled.</b>
 <TMPL_IF HTML5></nav><TMPL_ELSE></div></TMPL_IF>
 </TMPL_IF>
 
+<TMPL_UNLESS DYNAMIC>
+<TMPL_VAR TRAILS>
+</TMPL_UNLESS>
+
 <TMPL_IF HTML5></section><TMPL_ELSE></div></TMPL_IF>
 
+<TMPL_UNLESS DYNAMIC>
 <TMPL_IF SIDEBAR>
 <TMPL_IF HTML5><aside class="sidebar"><TMPL_ELSE><div class="sidebar"></TMPL_IF>
 <TMPL_VAR SIDEBAR>
 <TMPL_IF HTML5></aside><TMPL_ELSE></div></TMPL_IF>
 </TMPL_IF>
+</TMPL_UNLESS>
 
 <div id="pagebody">
 
-<TMPL_IF HTML5><section id="content"><TMPL_ELSE><div id="content"></TMPL_IF>
+<TMPL_IF HTML5><section<TMPL_ELSE><div</TMPL_IF> id="content" role="main">
 <TMPL_VAR CONTENT>
 <TMPL_IF HTML5></section><TMPL_ELSE></div></TMPL_IF>
 
+<TMPL_IF ENCLOSURE>
+<TMPL_IF HTML5><section id="enclosure"><TMPL_ELSE><div id="enclosure"></TMPL_IF>
+<a href="<TMPL_VAR ENCLOSURE>">Download</a>
+<TMPL_IF HTML5></section><TMPL_ELSE></div></TMPL_IF>
+</TMPL_IF>
+
 <TMPL_UNLESS DYNAMIC>
 <TMPL_IF COMMENTS>
-<TMPL_IF HTML5><section id="comments"><TMPL_ELSE><div id="comments"></TMPL_IF>
+<TMPL_IF HTML5><section<TMPL_ELSE><div</TMPL_IF> id="comments" role="complementary">
 <TMPL_VAR COMMENTS>
 <TMPL_IF ADDCOMMENTURL>
 <div class="addcomment">
@@ -143,9 +207,11 @@ If your browser supports JavaScript, be sure it is enabled.</b>
 
 </div>
 
-<TMPL_IF HTML5><footer id="footer" class="pagefooter"><TMPL_ELSE><div id="footer" class="pagefooter"></TMPL_IF>
+<TMPL_IF HTML5><footer<TMPL_ELSE><div</TMPL_IF> id="footer" class="pagefooter" role="contentinfo">
 <TMPL_UNLESS DYNAMIC>
 <TMPL_IF HTML5><nav id="pageinfo"><TMPL_ELSE><div id="pageinfo"></TMPL_IF>
+
+<TMPL_VAR TRAILS>
 
 <TMPL_IF TAGS>
 <TMPL_IF HTML5><nav class="tags"><TMPL_ELSE><div class="tags"></TMPL_IF>
