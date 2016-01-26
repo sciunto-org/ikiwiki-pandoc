@@ -266,7 +266,7 @@ sub htmlize ($@) {
         jsmath mathjax latexmathml asciimathml mathml katex mimetex webtex
     );
     my %with_urls = qw/mimetex 1 webtex 1/;
-    my $mathopt = $1 if $config{pandoc_math} =~ /(\w+)/;
+    my $mathopt = $1 if $config{pandoc_math} && $config{pandoc_math} =~ /(\w+)/;
     my $custom_js = $config{pandoc_math_custom_js} || '';
     if ($mathopt && $mathconf{$mathopt}) {
         if ($with_urls{$mathopt} && $custom_js) {
