@@ -66,14 +66,14 @@ sub getsetup () {
         type => "string",
         example => "/usr/local/bin/pandoc",
         description => "Path to pandoc executable",
-        safe => 0,
+        safe => 1,
         rebuild => 0,
     },
     pandoc_citeproc => {
         type => "string",
         example => "/usr/local/bin/pandoc-citeproc",
         description => "Path to pandoc-citeproc executable",
-        safe => 0,
+        safe => 1,
         rebuild => 0,
     },
     pandoc_markdown_ext => {
@@ -87,42 +87,42 @@ sub getsetup () {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of LaTeX documents (extension=tex)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_rst => {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of reStructuredText documents (extension=rst)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_textile => {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of Textile documents (extension=textile)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_mediawiki => {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of MediaWiki documents (extension=mediawiki)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_org => {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of Emacs org-mode documents (extension=org)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_opml => {
         type => "boolean",
         example => 0,
         description => "Enable Pandoc processing of OPML documents (extension=opml)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_smart => {
@@ -178,42 +178,42 @@ sub getsetup () {
         type => "string",
         example => "mathjax",
         description => "How to process TeX math (mathjax, katex, mathml, mathjs, latexmathml, asciimathml, mimetex, webtex)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_math_custom_js => {
         type => "string",
         example => "",
         description => "Link to local/custom javascript for math (or to server-side script for mimetex and webtex)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_math_custom_css => {
         type => "string",
         example => "",
         description => "Link to local/custom CSS for math (requires appropriate pandoc_math setting)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_bibliography => {
         type => "string",
         example => "",
         description => "Path to default bibliography file",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_csl => {
         type => "string",
         example => "",
         description => "Path to CSL file (for references and bibliography)",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
     pandoc_filters => {
         type => "string",
         example => "",
         description => "A comma-separated list of custom pandoc filters",
-        safe => 0,
+        safe => 1,
         rebuild => 1,
     },
 }
@@ -286,7 +286,7 @@ sub htmlize ($@) {
     my $to_json_pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
                     '-f', $format,
                     '-t', 'json',
-                    @args);
+                    @args, '--normalize');
     error("Unable to open $command") unless $to_json_pid;
 
     # Workaround for perl bug (#376329)
@@ -347,6 +347,13 @@ sub htmlize ($@) {
         $list_meta{$k} = [ map { compile_string($_) } @{$list_meta{$k}} ] if $k eq 'author';
         $have_bibl = 1 if $k eq 'references';
         $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
+    }
+    # Try to add other keys as scalars, with pandoc_ prefix only.
+    foreach my $k (keys %$meta) {
+        next if exists $scalar_meta{$k} || exists $list_meta{$k};
+        eval {
+            $pagestate{$page}{meta}{"pandoc_$k"} = compile_string($meta->{$k}->{c});
+        };
     }
     my $num_authors = scalar @{ $list_meta{author} };
     $scalar_meta{num_authors} = $num_authors;
