@@ -3,8 +3,8 @@
 
 * Make more pandoc-related options available through the web config interface
 * Make (scalar) pandoc yaml meta block variables visible to templates
-* Avoid 'Use of unitialized value...' warning when the 'pandoc_math' option is not present in the *.setup file
-
+* Avoid 'Use of uninitialized value...' warning when the `pandoc_math` option is not present in the `*.setup` file
+* Add new configuration option affecting citations processing: `pandoc_csl_default_lang`
 
 0.2 (2015-12-18)
 ================
