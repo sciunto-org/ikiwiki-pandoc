@@ -209,6 +209,13 @@ sub getsetup () {
         safe => 1,
         rebuild => 1,
     },
+    pandoc_csl_default_lang => {
+        type => "string",
+        example => "",
+        description => "Default language code (RFC 1766) for citations processing",
+        safe => 1,
+        rebuild => 1,
+    },
     pandoc_filters => {
         type => "string",
         example => "",
@@ -331,7 +338,8 @@ sub htmlize ($@) {
     }
 
     my %scalar_meta = map { ($_=>undef) } qw(
-        title date bibliography csl subtitle abstract summary description version);
+        title date bibliography csl subtitle abstract summary
+        description version lang locale);
     my %list_meta = map { ($_=>[]) } qw/author references/;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
@@ -382,7 +390,13 @@ sub htmlize ($@) {
             last;
         }
     }
-
+    # If a default CSL language is specified, add that to args,
+    # (unless it is overridden by meta)
+    unless ($scalar_meta{lang} || $scalar_meta{locale}) {
+        if ($config{pandoc_csl_default_lang}) {
+            push @args, "--metadata=lang:".$config{pandoc_csl_default_lang};
+        }
+    }
     # Turn on the pandoc-citeproc filter if either global bibliography,
     # local bibliography or a 'references' key in Meta is present.
     if ($have_bibl) {
