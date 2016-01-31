@@ -1,5 +1,5 @@
-0.X (2016-XX-XX)
-================
+0.2.1 (2016-01-31)
+==================
 
 * Make more pandoc-related options available through the web config interface
 * Make (scalar) pandoc yaml meta block variables visible to templates
