@@ -87,6 +87,8 @@ These settings have no effect unless you have activated the `page.tmpl` file whi
 
 * `pandoc_csl` (string): CSL file to use by default to format in-line references and the list of references. If this is empty, the default Chicago author-year format will be used, unless you specify a CSL file using `csl` in a YAML meta-block in the page itself.
 
+* `pandoc_csl_default_lang` (string): Language code to use by default during citations processing, unless something different is specified in the YAML meta block (using either of the keys `lang` or `locale`). Language codes follow [RFC 1766](https://www.ietf.org/rfc/rfc1766.txt) and are typically either two letters (e.g. `en` for English) or two letters followed by a hyphen and a refinement code (e.g. `en-GB` for British English). If no language code is configured here, pandoc-citeproc uses the default language of the preferred CSL file, or US English (`en-US`) if it specifies no default language. Underscore may be used instead of a hyphen in language codes, so `en-GB` and `en_GB` are equivalent. Pandoc-citeproc [supports](https://github.com/jgm/pandoc-citeproc/tree/master/locales) almost 50 major European and Asian languages.
+
 ### Output tweaking
 
 * `pandoc_smart` (boolean): Whether smart quotes and other typographic niceties are enabled.
