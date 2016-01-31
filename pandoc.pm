@@ -7,7 +7,10 @@ use strict;
 use IkiWiki;
 use FileHandle;
 use IPC::Open2;
+use File::Path qw/make_path/;
 use JSON;
+
+our @extra_formats = qw/pdf docx odt/;
 
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
@@ -19,6 +22,7 @@ sub import {
 
     hook(type => "getsetup", id => "pandoc", call => \&getsetup);
     hook(type => "pagetemplate", id => "pandoc", call => \&pagetemplate);
+    hook(type => "pageactions", id => "pandoc", call => \&pageactions);
 
     if (ref $markdown_ext eq 'ARRAY') {
         foreach my $mde (@$markdown_ext) {
@@ -325,6 +329,7 @@ sub htmlize ($@) {
     sub compile_string {
         # Partially represents an item from the data structure in meta as a string.
         my @uncompiled = @_;
+        return $uncompiled[0] if @uncompiled==1 && !ref($uncompiled[0]);
         @uncompiled = @{$uncompiled[0]} if @uncompiled==1 && ref $uncompiled[0] eq 'ARRAY';
         my $compiled_string = '';
         foreach my $word_or_space (@uncompiled) {
@@ -340,6 +345,8 @@ sub htmlize ($@) {
     my %scalar_meta = map { ($_=>undef) } qw(
         title date bibliography csl subtitle abstract summary
         description version lang locale);
+    my %bool_meta = map { ($_=>0) } qw(
+        generate_pdf generate_docx generate_odt);
     my %list_meta = map { ($_=>[]) } qw/author references/;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
@@ -347,7 +354,14 @@ sub htmlize ($@) {
         $scalar_meta{$k} = compile_string($meta->{$k}->{c});
         $pagestate{$page}{meta}{$k} = $scalar_meta{$k};
         $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
-
+    }
+    foreach my $k (keys %bool_meta) {
+        next unless $meta->{$k};
+        my $val = $meta->{$k}->{c};
+        next if ref $val;
+        next if $val =~ /^\s*(?:off|no|false|0)\s*$/i;
+        $bool_meta{$k} = 1;
+        $pagestate{$page}{meta}{"pandoc_$k"} = 1;
     }
     foreach my $k (keys %list_meta) {
         next unless $meta->{$k};
@@ -420,6 +434,11 @@ sub htmlize ($@) {
                     @args);
     error("Unable to open $command") unless $to_html_pid;
 
+    foreach my $ext (@extra_formats) {
+        export_file($page, $ext, $json_content, $command, @args)
+            if $bool_meta{"generate_$ext"};
+    }
+
     print JSON_IN $json_content;
     close JSON_IN;
 
@@ -440,6 +459,52 @@ sub pagetemplate (@) {
     foreach my $k (keys %{$pagestate{$page}{meta}}) {
         next unless $k =~ /^pandoc_/;
         $template->param($k => $pagestate{$page}{meta}{$k});
+    }
+}
+
+sub pageactions {
+    my %args = @_;
+    my $page = $args{page};
+    my @links = ();
+    return unless $pagestate{$page}{extra_formats};
+    foreach my $ext (@extra_formats) {
+        my $url = $pagestate{$page}{extra_formats}{$ext};
+        next unless $url;
+        push @links, qq[<a href="$url">$ext</a>];
+    }
+    return @links;
+}
+
+sub export_file {
+    my ($page, $ext, $json_content, $command, @args) = @_;
+    # the html file will end up in "$destdir/$page/index.html",
+    # while e.g. a pdf will be in "$destdir/$page/$page_minus_dirs.pdf".
+    my $destdir = $config{destdir} || '.';
+    my $page_minus_dirs = $1 if $page =~ /([^\/]*)$/;
+    $page_minus_dirs ||= 'index';
+    my $export_path = "$destdir/$page/$page_minus_dirs.$ext";
+    my $export_url = $config{url};
+    $export_url .= "/" unless $export_url =~ /\/$/;
+    $export_url .= "$page/$page_minus_dirs.$ext";
+    my $subdir = $1 if $export_path =~ /(.*)\//;
+    eval {
+        if ($subdir && !-d $subdir) {
+            make_path($subdir) or die "Could not make_path $subdir: $!";
+        }
+        my $to_format = $ext eq 'pdf' ? 'latex' : $ext;
+        open(EXPORT, "|-",
+             $command,
+             '-f' => 'json',
+             '-t' => $to_format,
+             '-o' => $export_path,
+             @args) or die "Could not open pipe for $ext: $!";
+        print EXPORT $json_content;
+        close EXPORT or die "Could not close pipe for $ext: $!";
+        $pagestate{$page}{extra_formats} ||= {};
+        $pagestate{$page}{extra_formats}{$ext} = $export_url;
+    };
+    if ($@) {
+        warn "EXPORT ERROR FOR $page (format: $ext): $@\n";
     }
 }
 
