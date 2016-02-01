@@ -10,7 +10,15 @@ use IPC::Open2;
 use File::Path qw/make_path/;
 use JSON;
 
-our @extra_formats = qw/pdf docx odt/;
+# activate with 'generate_$format' in meta; turn on all with 'generate_all_formats'.
+my %extra_formats = (
+    pdf    => { ext=>'pdf', label=>'PDF', format=>'latex', extra=>[], order=>1 },
+    docx   => { ext=>'docx', label=>'DOCX', format=>'docx', extra=>[], order=>2 },
+    odt    => { ext=>'odt', label=>'ODT', format=>'odt', extra=>[], order=>3 },
+    beamer => { ext=>'beamer.pdf', label=>'Slides', format=>'beamer', extra=>[], order=>4 },
+    epub   => { ext=>'epub', label=>'EPUB', format=>'epub3', extra=>[], order=>5 },
+    latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>6 },
+);
 
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
@@ -227,6 +235,76 @@ sub getsetup () {
         safe => 1,
         rebuild => 1,
     },
+    pandoc_latex_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for LaTeX and normal PDF output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_latex_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for LaTeX (and PDF) generation",
+        safe => 0,
+        rebuild => 0,
+    },
+    pandoc_beamer_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for Beamer PDF output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_beamer_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for Beamer PDF generation",
+        safe => 0,
+        rebuild => 0,
+    },
+    pandoc_docx_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for MS Word (docx) output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_docx_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for DOCX generation",
+        safe => 0,
+        rebuild => 0,
+    },
+    pandoc_odt_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for OpenDocument (odt) output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_odt_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for ODT generation",
+        safe => 0,
+        rebuild => 0,
+    },
+    pandoc_epub_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for EPUB3 output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_epub_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for EPUB3 generation",
+        safe => 0,
+        rebuild => 0,
+    },
 }
 
 
@@ -345,8 +423,7 @@ sub htmlize ($@) {
     my %scalar_meta = map { ($_=>undef) } qw(
         title date bibliography csl subtitle abstract summary
         description version lang locale);
-    my %bool_meta = map { ($_=>0) } qw(
-        generate_pdf generate_docx generate_odt);
+    my %bool_meta = map { ("generate_$_"=>0) } keys %extra_formats;
     my %list_meta = map { ($_=>[]) } qw/author references/;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
@@ -356,12 +433,15 @@ sub htmlize ($@) {
         $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
     }
     foreach my $k (keys %bool_meta) {
-        next unless $meta->{$k};
-        my $val = $meta->{$k}->{c};
-        next if ref $val;
-        next if $val =~ /^\s*(?:off|no|false|0)\s*$/i;
-        $bool_meta{$k} = 1;
-        $pagestate{$page}{meta}{"pandoc_$k"} = 1;
+        my $gen_all = $meta->{generate_all_formats} || {};
+        next unless $meta->{$k} || $gen_all->{c};
+        my $val = $meta->{$k} ? $meta->{$k}->{c} : $gen_all->{c};
+        if (ref $val || $val =~ /^\s*(?:off|no|false|0)\s*$/i) {
+            $bool_meta{$k} = 0;
+        } else {
+            $bool_meta{$k} = 1;
+            $pagestate{$page}{meta}{"pandoc_$k"} = 1;
+        }
     }
     foreach my $k (keys %list_meta) {
         next unless $meta->{$k};
@@ -434,9 +514,13 @@ sub htmlize ($@) {
                     @args);
     error("Unable to open $command") unless $to_html_pid;
 
-    foreach my $ext (@extra_formats) {
-        export_file($page, $ext, $json_content, $command, @args)
-            if $bool_meta{"generate_$ext"};
+    $pagestate{$page}{pandoc_extra_formats} = {};
+    foreach my $ext (keys %extra_formats) {
+        if ($bool_meta{"generate_$ext"}) {
+            export_file($page, $ext, $json_content, $command, @args);
+        } else {
+            remove_exported_file($page, $ext);
+        }
     }
 
     print JSON_IN $json_content;
@@ -466,46 +550,79 @@ sub pageactions {
     my %args = @_;
     my $page = $args{page};
     my @links = ();
-    return unless $pagestate{$page}{extra_formats};
-    foreach my $ext (@extra_formats) {
-        my $url = $pagestate{$page}{extra_formats}{$ext};
+    return unless $pagestate{$page}{pandoc_extra_formats};
+    my @exts = sort {
+        $extra_formats{$a}->{order} <=> $extra_formats{$b}->{order}
+    } keys %{ $pagestate{$page}{pandoc_extra_formats} };
+    foreach my $ext (@exts) {
+        my $url = $pagestate{$page}{pandoc_extra_formats}{$ext};
         next unless $url;
-        push @links, qq[<a href="$url">$ext</a>];
+        my $label = $extra_formats{$ext}->{label} || $ext;
+        push @links, qq[
+          <a href="$url"
+             class="extra-format-link"
+             title="Download $label version of this page"
+             target="_blank">$label</a>
+        ];
     }
     return @links;
 }
 
 sub export_file {
     my ($page, $ext, $json_content, $command, @args) = @_;
-    # the html file will end up in "$destdir/$page/index.html",
-    # while e.g. a pdf will be in "$destdir/$page/$page_minus_dirs.pdf".
-    my $destdir = $config{destdir} || '.';
-    my $page_minus_dirs = $1 if $page =~ /([^\/]*)$/;
-    $page_minus_dirs ||= 'index';
-    my $export_path = "$destdir/$page/$page_minus_dirs.$ext";
-    my $export_url = $config{url};
-    $export_url .= "/" unless $export_url =~ /\/$/;
-    $export_url .= "$page/$page_minus_dirs.$ext";
+    my ($export_path, $export_url) = _export_file_path_and_url($page, $ext);
     my $subdir = $1 if $export_path =~ /(.*)\//;
+    my @extra_args = @{ $extra_formats{$ext}->{extra} };
+    my $template = $config{"pandoc_".$ext."_template"} || '';
+    push @extra_args, "--template=$template" if $template;
+    my $conf_extra = $config{"pandoc_".$ext."_extra_options"};
+    if (ref $conf_extra eq 'ARRAY' && @$conf_extra) {
+        push @extra_args, @$conf_extra;
+    }
     eval {
         if ($subdir && !-d $subdir) {
             make_path($subdir) or die "Could not make_path $subdir: $!";
         }
-        my $to_format = $ext eq 'pdf' ? 'latex' : $ext;
+        my $to_format = $extra_formats{$ext}->{format} || $ext;
         open(EXPORT, "|-",
              $command,
              '-f' => 'json',
              '-t' => $to_format,
              '-o' => $export_path,
-             @args) or die "Could not open pipe for $ext: $!";
+             @args, @extra_args) or die "Could not open pipe for $ext: $!";
         print EXPORT $json_content;
         close EXPORT or die "Could not close pipe for $ext: $!";
-        $pagestate{$page}{extra_formats} ||= {};
-        $pagestate{$page}{extra_formats}{$ext} = $export_url;
+        $pagestate{$page}{pandoc_extra_formats}{$ext} = $export_url;
     };
     if ($@) {
         warn "EXPORT ERROR FOR $page (format: $ext): $@\n";
     }
+}
+
+sub remove_exported_file {
+    my ($page, $ext) = @_;
+    my ($export_path, $export_url) = _export_file_path_and_url($page, $ext);
+    if (-f $export_path) {
+        eval { unlink $export_path or die "Could not unlink $export_path: $!" };
+        if ($@) {
+            warn "WARNING: remove_exported_file; page=$page, ext=$ext: $@\n";
+        }
+    }
+}
+
+sub _export_file_path_and_url {
+    my ($page, $ext) = @_;
+    # the html file will end up in "$destdir/$page/index.html",
+    # while e.g. a pdf will be in "$destdir/$page/$page_minus_dirs.pdf".
+    my $extension = $extra_formats{$ext}->{ext} || $ext;
+    my $destdir = $config{destdir} || '.';
+    my $page_minus_dirs = $1 if $page =~ /([^\/]*)$/;
+    $page_minus_dirs ||= 'index';
+    my $export_path = "$destdir/$page/$page_minus_dirs.$extension";
+    my $export_url = $config{url};
+    $export_url .= "/" unless $export_url =~ /\/$/;
+    $export_url .= "$page/$page_minus_dirs.$extension";
+    return ($export_path, $export_url);
 }
 
 1;
