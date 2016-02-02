@@ -15,7 +15,7 @@ my %extra_formats = (
     pdf    => { ext=>'pdf', label=>'PDF', format=>'latex', extra=>[], order=>1 },
     docx   => { ext=>'docx', label=>'DOCX', format=>'docx', extra=>[], order=>2 },
     odt    => { ext=>'odt', label=>'ODT', format=>'odt', extra=>[], order=>3 },
-    beamer => { ext=>'beamer.pdf', label=>'Slides', format=>'beamer', extra=>[], order=>4 },
+    beamer => { ext=>'beamer.pdf', label=>'Beamer', format=>'beamer', extra=>[], order=>4 },
     epub   => { ext=>'epub', label=>'EPUB', format=>'epub3', extra=>[], order=>5 },
     latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>6 },
 );
@@ -573,9 +573,10 @@ sub export_file {
     my ($export_path, $export_url) = _export_file_path_and_url($page, $ext);
     my $subdir = $1 if $export_path =~ /(.*)\//;
     my @extra_args = @{ $extra_formats{$ext}->{extra} };
-    my $template = $config{"pandoc_".$ext."_template"} || '';
+    my $eopt = $ext eq 'pdf' ? 'latex' : $ext;
+    my $template = $config{"pandoc_".$eopt."_template"} || '';
     push @extra_args, "--template=$template" if $template;
-    my $conf_extra = $config{"pandoc_".$ext."_extra_options"};
+    my $conf_extra = $config{"pandoc_".$eopt."_extra_options"};
     if (ref $conf_extra eq 'ARRAY' && @$conf_extra) {
         push @extra_args, @$conf_extra;
     }

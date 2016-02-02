@@ -9,7 +9,7 @@ Pandoc <http://johnmacfarlane.net/pandoc/> has a richer syntax and more flexible
 
 
 Install
-=======
+-------
 
     # (1) Install the library.
     # Alternatively, can be installed in /usr/share/perl5 or similar.
@@ -34,14 +34,15 @@ Install
     #     add 'pandoc' to `add_plugins` list in your *.setup file
 
     # (5) Refresh your *.setup file and rebuild your wiki:
-    # Between those two commands, you may want to tweek some options.
+    # Between those two commands, you may want to tweak some options.
     #
     ikiwiki --changesetup *.setup
     ikiwiki --rebuild --setup *.setup
 
 **Note:** If you want to put mathematics markup into your pages or blog entries, you are likely to run into problems with the `smiley` plugin, so you should probably disable it by adding it to the `disable_plugins` list in your `*.setup` file.
 
-## Options
+Options
+-------
 
 The following options are available in the `*.setup` file. Some of them are also available in the web settings.
 
@@ -105,8 +106,49 @@ These settings have no effect unless you have activated the `page.tmpl` file whi
 
 * `pandoc_codeclasses` (string): CSS classes to add to indented code blocks. One may also specify CSS classes individually for each block.
 
+### Extra output formats
 
-## Details
+It is sometimes useful to use pandoc to export the content of a wiki page to non-html formats, e.g. pdf or docx. This can be triggered by setting certain attributes in the YAML meta block of the page. The currently supported formats are `pdf`, `docx`, `odt`, `latex`, `beamer`, and `epub`. The corresponding meta attributes are the boolean values `generate_pdf`, `generate_docx`, `generate_odt`, `generate_latex`, `generate_beamer`, and `generate_epub`. As a shortcut, `generate_all_formats` will turn on all the generation of all six formats. For instance,
+
+```yaml
+generate_all_formats: true
+generate_beamer: false
+```
+
+will export files of all formats except Beamer.
+
+When such extra formats have been generated for a page, links to the exported files will be appended to the action links (e.g. "Edit"). These are at the top of the page in the default theme.
+
+There are several configuration options related to the export functionality:
+
+* `pandoc_latex_template`: Path to pandoc template for LaTeX and PDF output. Since PDF files are created by way of LaTeX, there is no separate PDF template. (Obviously, PDF generation requires a working LaTeX installation).
+
+* `pandoc_latex_extra_options`: List of extra pandoc options of LaTeX and PDF generation. (Note that this, like other `*_extra_options`, is a *list*, not simply a string).
+
+* `pandoc_beamer_template`: Path to pandoc template for Beamer PDF output. (Beamer is a presentations package for LaTeX).
+
+* `pandoc_beamer_extra_options`: List of extra pandoc options for Beamer PDF generation.
+
+* `pandoc_docx_template`: Path to pandoc template for MS Word (`docx`) output.
+
+* `pandoc_docx_extra_options`: List of extra pandoc options for `docx` generation.
+
+* `pandoc_odt_template`: Path to pandoc template for OpenDocument (`odt`) output for LibreOffice, OpenOffice, etc..
+
+* `pandoc_odt_extra_options`: List of extra pandoc options for `odt` generation.
+
+* `pandoc_epub_template`: Path to pandoc template for epub output. (Note that the this will actually generate EPUB3 files rather than the more familiar EPUB2. The reason is that EPUB3 has better native math support).
+
+* `pandoc_epub_extra_options`: List of extra pandoc options for epub generation.
+
+Notable **limitations** with regard to the export suppport:
+
+* There is currently no way of overriding template or option settings for a specific format on a per-page basis.
+
+* There is currently no option for turning some list of export formats on by default for all pandoc-processed pages. The reason is that some plugins which insert content into the page, notably the [template plugin](https://ikiwiki.info/plugins/template/), call pandoc in such a way that the pandoc plugin apparently has no certain way of distinguishing between these calls and the processing of an entire page. A global option might thus lead to much wasted work and conceivably even to the overwriting of export files by incorrect content.
+
+Details
+-------
 
 ### Syntax Coloring
 
@@ -222,4 +264,3 @@ License
 =======
 
 GPLv2. See `LICENSE` for more details.
-
