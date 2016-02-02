@@ -16,8 +16,9 @@ my %extra_formats = (
     docx   => { ext=>'docx', label=>'DOCX', format=>'docx', extra=>[], order=>2 },
     odt    => { ext=>'odt', label=>'ODT', format=>'odt', extra=>[], order=>3 },
     beamer => { ext=>'beamer.pdf', label=>'Beamer', format=>'beamer', extra=>[], order=>4 },
-    epub   => { ext=>'epub', label=>'EPUB', format=>'epub3', extra=>[], order=>5 },
-    latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>6 },
+    revealjs => { ext=>'revealjs.html', label=>'RevealJS', format=>'revealjs', extra=>['--self-contained'], order=>5 },
+    epub   => { ext=>'epub', label=>'EPUB', format=>'epub3', extra=>[], order=>6 },
+    latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>7 },
 );
 
 sub import {
@@ -263,6 +264,20 @@ sub getsetup () {
         safe => 0,
         rebuild => 0,
     },
+    pandoc_revealjs_template {
+        type => "string",
+        example => "",
+        description => "Path to pandoc template for Reveal.js slides output",
+        safe => 1,
+        rebuild => 0,
+    },
+    pandoc_revealjs_extra_options {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for Reveal.js slides generation",
+        safe => 0,
+        rebuild => 0,
+    },
     pandoc_docx_template {
         type => "string",
         example => "",
@@ -357,6 +372,14 @@ sub htmlize ($@) {
     my %with_urls = qw/mimetex 1 webtex 1/;
     my $mathopt = $1 if $config{pandoc_math} && $config{pandoc_math} =~ /(\w+)/;
     my $custom_js = $config{pandoc_math_custom_js} || '';
+    # cleanup pandoc-prefixed keys from persistent meta
+    if (ref $pagestate{$page}{meta} eq 'HASH') {
+        my @delkeys = ();
+        foreach my $k (%{ $pagestate{$page}{meta} }) {
+            push @delkeys, $k if $k =~ /^pandoc_/;
+        }
+        delete $pagestate{$page}{meta}{$_} for @delkeys;
+    }
     if ($mathopt && $mathconf{$mathopt}) {
         if ($with_urls{$mathopt} && $custom_js) {
             # In these cases, the 'custom js' is a misnomer: actually a server-side script
@@ -436,6 +459,8 @@ sub htmlize ($@) {
         my $gen_all = $meta->{generate_all_formats} || {};
         next unless $meta->{$k} || $gen_all->{c};
         my $val = $meta->{$k} ? $meta->{$k}->{c} : $gen_all->{c};
+        # simplifies matters with JSON::(PP::)Boolean objects
+        $val = 1 if $val == 1 || $val eq 'true';
         if (ref $val || $val =~ /^\s*(?:off|no|false|0)\s*$/i) {
             $bool_meta{$k} = 0;
         } else {

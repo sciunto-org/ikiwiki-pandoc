@@ -108,26 +108,31 @@ These settings have no effect unless you have activated the `page.tmpl` file whi
 
 ### Extra output formats
 
-It is sometimes useful to use pandoc to export the content of a wiki page to non-html formats, e.g. pdf or docx. This can be triggered by setting certain attributes in the YAML meta block of the page. The currently supported formats are `pdf`, `docx`, `odt`, `latex`, `beamer`, and `epub`. The corresponding meta attributes are the boolean values `generate_pdf`, `generate_docx`, `generate_odt`, `generate_latex`, `generate_beamer`, and `generate_epub`. As a shortcut, `generate_all_formats` will turn on all the generation of all six formats. For instance,
+It is sometimes useful to use pandoc to export the content of a wiki page to non-html formats, e.g. pdf or docx. This can be triggered by setting certain attributes in the YAML meta block of the page. The currently supported formats are `pdf`, `docx`, `odt`, `latex`, `beamer`, `revealjs` and `epub`. The corresponding meta attributes are the boolean values `generate_pdf`, `generate_docx`, `generate_odt`, `generate_latex`, `generate_beamer`, `generate_revealjs` and `generate_epub`. As a shortcut, `generate_all_formats` will turn on the generation of all seven formats; some of them may then be turned off individually. For instance,
 
 ```yaml
 generate_all_formats: true
 generate_beamer: false
+generate_revealjs: false
 ```
 
-will export files of all formats except Beamer.
+will export files of all formats except Beamer and reveal.js.
 
-When such extra formats have been generated for a page, links to the exported files will be appended to the action links (e.g. "Edit"). These are at the top of the page in the default theme.
+When such extra formats have been generated for a page, links to the exported files will be appended to the so-called action links ("Edit", "History", etc.). These links are at the top of the page in the default theme.
 
 There are several configuration options related to the export functionality:
 
 * `pandoc_latex_template`: Path to pandoc template for LaTeX and PDF output. Since PDF files are created by way of LaTeX, there is no separate PDF template. (Obviously, PDF generation requires a working LaTeX installation).
 
-* `pandoc_latex_extra_options`: List of extra pandoc options of LaTeX and PDF generation. (Note that this, like other `*_extra_options`, is a *list*, not simply a string).
+* `pandoc_latex_extra_options`: List of extra pandoc options for LaTeX and PDF generation. (Note that this, like other `*_extra_options`, is a *list*, not simply a string).
 
 * `pandoc_beamer_template`: Path to pandoc template for Beamer PDF output. (Beamer is a presentations package for LaTeX).
 
 * `pandoc_beamer_extra_options`: List of extra pandoc options for Beamer PDF generation.
+
+* `pandoc_revealjs_template`: Path to pandoc template for Reveal.js slides output.
+
+* `pandoc_revealjs_extra_options`: List of extra pandoc options for Reveal.js slides generation. **Please note** that the option `--self-contained` is added automatically. In order for this to work, pandoc has to know where to find the reveal.js Javascript and CSS files. The easiest way of making sure of this is to keep them in pandoc's default user data directory. You can see the name of this folder by running `pandoc --version`; usually it is `~/.pandoc`, in which case the reveal.js files would be in the subdirectory `~/.pandoc/reveal.js/`. You can download the most recent reveal.js release [here](https://github.com/hakimel/reveal.js/releases).
 
 * `pandoc_docx_template`: Path to pandoc template for MS Word (`docx`) output.
 
@@ -141,7 +146,7 @@ There are several configuration options related to the export functionality:
 
 * `pandoc_epub_extra_options`: List of extra pandoc options for epub generation.
 
-Notable **limitations** with regard to the export suppport:
+**Notable limitations** with regard to the export suppport:
 
 * There is currently no way of overriding template or option settings for a specific format on a per-page basis.
 

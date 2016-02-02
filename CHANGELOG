@@ -1,7 +1,7 @@
 0.3 (2016-02-02)
 ================
 
-* Add support for on-demand page export in several formats: pdf, beamer, latex, docx, odt and epub.
+* Add support for on-demand page export in several formats: pdf, beamer, revealjs, latex, docx, odt and epub.
 
 0.2.1 (2016-01-31)
 ==================
