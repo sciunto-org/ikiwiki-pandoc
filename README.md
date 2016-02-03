@@ -3,7 +3,7 @@ ikiwiki-pandoc
 
 Pandoc plugin for ikiwiki.
 
-Pandoc <http://johnmacfarlane.net/pandoc/> has a richer syntax and more flexible configuration than Markdown, and is also able to parse a variety of other syntaxes. This plugin can be configured to generate wiki pages from LaTeX, reST, mediawiki, textile, OPML or Emacs Org sources, as well as markdown. It can also be configured to convert inline TeX math using a variety of methods. Finally, if Pandoc was compiled with the `-fhighlighting` option, it will apply syntax highlighting to code blocks and `inline code spans`.
+[Pandoc](http://johnmacfarlane.net/pandoc/) has a richer syntax and more flexible configuration than standard Markdown, and is also able to parse a variety of other syntaxes. This plugin can be configured to generate wiki pages from LaTeX, reST, mediawiki, textile, OPML or Emacs Org sources, as well as markdown. It can also be configured to convert and display inline TeX math using a variety of methods. If Pandoc was compiled with the `-fhighlighting` option, it will also apply syntax highlighting to code blocks and `inline code spans`. Finally, it is possible to export the content of a wiki page to several of the non-HTML formats supported by pandoc, including pdf and docx, or to create slideshows using Beamer and reveal.js.
 
 * <http://ikiwiki.info/plugins/contrib/pandoc/>
 
@@ -120,6 +120,8 @@ will export files of all formats except Beamer and reveal.js.
 
 When such extra formats have been generated for a page, links to the exported files will be appended to the so-called action links ("Edit", "History", etc.). These links are at the top of the page in the default theme.
 
+#### Configuration options
+
 There are several configuration options related to the export functionality:
 
 * `pandoc_latex_template`: Path to pandoc template for LaTeX and PDF output. Since PDF files are created by way of LaTeX, there is no separate PDF template. (Obviously, PDF generation requires a working LaTeX installation).
@@ -134,11 +136,11 @@ There are several configuration options related to the export functionality:
 
 * `pandoc_revealjs_extra_options`: List of extra pandoc options for Reveal.js slides generation. **Please note** that the option `--self-contained` is added automatically. In order for this to work, pandoc has to know where to find the reveal.js Javascript and CSS files. The easiest way of making sure of this is to keep them in pandoc's default user data directory. You can see the name of this folder by running `pandoc --version`; usually it is `~/.pandoc`, in which case the reveal.js files would be in the subdirectory `~/.pandoc/reveal.js/`. You can download the most recent reveal.js release [here](https://github.com/hakimel/reveal.js/releases).
 
-* `pandoc_docx_template`: Path to pandoc template for MS Word (`docx`) output.
+* `pandoc_docx_template`: Path to reference `docx` document used by pandoc for MS Word output.
 
 * `pandoc_docx_extra_options`: List of extra pandoc options for `docx` generation.
 
-* `pandoc_odt_template`: Path to pandoc template for OpenDocument (`odt`) output for LibreOffice, OpenOffice, etc..
+* `pandoc_odt_template`: Path to reference `odt` document used by pandoc for OpenDocument output for LibreOffice, OpenOffice, etc.
 
 * `pandoc_odt_extra_options`: List of extra pandoc options for `odt` generation.
 
@@ -146,11 +148,39 @@ There are several configuration options related to the export functionality:
 
 * `pandoc_epub_extra_options`: List of extra pandoc options for epub generation.
 
-**Notable limitations** with regard to the export suppport:
+#### Overriding settings on a specific page
 
-* There is currently no way of overriding template or option settings for a specific format on a per-page basis.
+It is possible to override and/or extend the settings for an output format on a given page, using meta attributes with the same names as the configuration options above, except without the `pandoc_*` prefix. As an example, consider the YAML metadata block below:
 
-* There is currently no option for turning some list of export formats on by default for all pandoc-processed pages. The reason is that some plugins which insert content into the page, notably the [template plugin](https://ikiwiki.info/plugins/template/), call pandoc in such a way that the pandoc plugin apparently has no certain way of distinguishing between these calls and the processing of an entire page. A global option might thus lead to much wasted work and conceivably even to the overwriting of export files by incorrect content.
+```yaml
+title: The Communist Manifesto
+author:
+  - Karl Marx
+  - Friedrich Engels
+date: 1848-02-21
+lang: en-GB
+bibliography: /home/km/bib/communism.bib
+generate_pdf: true
+generate_docx: true
+latex_template: booklet_tpl.latex
+latex_extra_options:
+  - -\-biblatex
+  - -\-variable=biblio-style:authoryear
+docx_template: manifesto_tpl.docx
+```
+
+Here, the `latex_template` setting (which controls both `pdf` and `latex` output) will **replace** whatever was configured in the `*.setup` file under `pandoc_latex_template`, while the `latex_extra_options` setting will be **added** to the list of extra arguments (if any) specified in `pandoc_latex_extra_options`.
+
+Also note that pandoc interprets string values in the meta block as markdown, which is why we need to backslash-escape one of the leading hyphens in each option. Otherwise, `--` will be turned into `–` (an ndash) during meta parsing, at least if the `pandoc_smart` configuration option is turned on, with predictably undesireable results.
+
+Finally, specifying `--biblatex` or `--natbib` in the extra options for the `pdf` or `beamer` export formats will automatically turn off citations processing using `pandoc-citeproc`, leaving that task to the relevant LaTeX packages. In order for this to work properly, you need to have a working LaTeX installation, including the utility `latexmk`, which has to be in your `$PATH`.
+
+#### Notable export limitations
+
+* There is currently no option for turning some list of export formats on by default for all pandoc-processed pages. The reason is that some plugins which insert content into the page, notably the [template plugin](https://ikiwiki.info/plugins/template/), call pandoc in such a way that the pandoc plugin apparently has no certain way of distinguishing between these calls and the processing of an entire page. A global option might thus lead to much wasted work and conceivably even to the overwriting of freshly-generated export files by incorrect content.
+
+* Many export formats supported by pandoc itself are not supported at present by ikiwiki-pandoc. These include `fb2`, `docbook`, `context` and `rtf`, as well as a few html-based slides formats (`s5`, `slidy`, ...) and some text-based markup formats (`asciidoc`, `docuwiki`, ...).
+
 
 Details
 -------
@@ -166,7 +196,7 @@ Pandoc can be configured to apply classes globally to all its inline code blocks
     }
     ~~~
 
-The line of `~~~` can be longer than 3 characters, if you like. This manner of writing indented code blocks also 
+The line of `~~~` can be longer than 3 characters, if you like. Github-style code blocks (using backticks instead of tildes) are also supported. This manner of writing indented code blocks also
 permits us to specify the block's specific syntax, which might be different from other blocks:
 
 

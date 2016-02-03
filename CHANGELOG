@@ -1,3 +1,10 @@
+0.4 (2016-02-03)
+=================
+
+* Add support for per-page configuration for export formats.
+* Add support for biblatex/natbib in latex/pdf/beamer output.
+* Fix handling of docx and odt `*_template` option (`--reference-XXX`, not `--template`).
+
 0.3 (2016-02-02)
 ================
 

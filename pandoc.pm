@@ -425,33 +425,23 @@ sub htmlize ($@) {
 
     # Get some selected meta attributes, more specifically:
     # (title date bibliography csl subtitle abstract summary description
-    #  version references author [+ num_authors primary_author])
+    #  version lang  locale references author [+ num_authors primary_author]),
+    # as well as some configuration options (generate_*, *_extra_options, *_template).
 
-    sub compile_string {
-        # Partially represents an item from the data structure in meta as a string.
-        my @uncompiled = @_;
-        return $uncompiled[0] if @uncompiled==1 && !ref($uncompiled[0]);
-        @uncompiled = @{$uncompiled[0]} if @uncompiled==1 && ref $uncompiled[0] eq 'ARRAY';
-        my $compiled_string = '';
-        foreach my $word_or_space (@uncompiled) {
-            next unless ref $word_or_space eq 'HASH';
-            my $type = $word_or_space->{'t'};
-            $compiled_string .= compile_string(@{ $word_or_space->{c} }) if $type eq 'MetaInlines';
-            next unless $type eq 'Str' || $type eq 'Space' || $type eq 'MetaString';
-            $compiled_string .= $type eq 'Space' ? ' ' : $word_or_space->{c};
-        }
-        return $compiled_string;
-    }
-
+    my @format_keys = grep { $_ ne 'pdf' } keys %extra_formats;
     my %scalar_meta = map { ($_=>undef) } qw(
         title date bibliography csl subtitle abstract summary
         description version lang locale);
+    $scalar_meta{$_.'_template'} = undef for @format_keys;
     my %bool_meta = map { ("generate_$_"=>0) } keys %extra_formats;
     my %list_meta = map { ($_=>[]) } qw/author references/;
+    $list_meta{$_.'_extra_options'} = [] for @format_keys;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
         next unless $meta->{$k};
         $scalar_meta{$k} = compile_string($meta->{$k}->{c});
+        # NB! Note that this is potentially risky, since pagestate is sticky, and
+        # we only cleanup the pandoc_* values in {meta}.
         $pagestate{$page}{meta}{$k} = $scalar_meta{$k};
         $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
     }
@@ -470,10 +460,10 @@ sub htmlize ($@) {
     }
     foreach my $k (keys %list_meta) {
         next unless $meta->{$k};
-        $list_meta{$k} = $meta->{$k}->{'c'};
-        $list_meta{$k} = [ map { compile_string($_) } @{$list_meta{$k}} ] if $k eq 'author';
+        $list_meta{$k} = unwrap_c($meta->{$k});
+        $list_meta{$k} = [$list_meta{$k}] unless ref $list_meta{$k} eq 'ARRAY';
         $have_bibl = 1 if $k eq 'references';
-        $pagestate{$page}{meta}{"pandoc_$k"} = $pagestate{$page}{meta}{$k};
+        $pagestate{$page}{meta}{"pandoc_$k"} = $list_meta{$k};
     }
     # Try to add other keys as scalars, with pandoc_ prefix only.
     foreach my $k (keys %$meta) {
@@ -599,25 +589,69 @@ sub export_file {
     my $subdir = $1 if $export_path =~ /(.*)\//;
     my @extra_args = @{ $extra_formats{$ext}->{extra} };
     my $eopt = $ext eq 'pdf' ? 'latex' : $ext;
-    my $template = $config{"pandoc_".$eopt."_template"} || '';
-    push @extra_args, "--template=$template" if $template;
+    # Note that template in meta OVERRIDES template in config,
+    # while extra_options in meta are ADDED to extra_options in config.
+    my $template = $pagestate{$page}{meta}{"pandoc_".$eopt."_template"}
+                   || $config{"pandoc_".$eopt."_template"} || '';
+    if ($template) {
+        push @extra_args, ($ext =~ /^(docx|odt)$/
+                           ? "--reference-$ext=$template"
+                           : "--template=$template");
+    }
     my $conf_extra = $config{"pandoc_".$eopt."_extra_options"};
-    if (ref $conf_extra eq 'ARRAY' && @$conf_extra) {
-        push @extra_args, @$conf_extra;
+    my $conf_extra_custom = $pagestate{$page}{meta}{"pandoc_".$eopt."_extra_options"};
+    foreach my $cnf ($conf_extra, $conf_extra_custom) {
+        if (ref $cnf eq 'ARRAY' && @$cnf) {
+            push @extra_args, @$cnf;
+        }
+    }
+    # If the user has asked for native LaTeX bibliography handling in the
+    # extra_args for this export format (using --biblatex or --natbib),
+    # some extra care is needed. Among other things, we need an external
+    # tool for PDF generation. In this case, $indirect_pdf will be true.
+    my %maybe_non_citeproc = qw/latex 1 pdf 1 beamer 1/;
+    my $indirect_pdf = 0;
+    if ($maybe_non_citeproc{$ext} && grep { /^(?:--biblatex|--natbib)$/ } @extra_args) {
+        $indirect_pdf = 1 unless $ext eq 'latex'; # both for pdf and beamer
+        @args = grep { ! /--filter=.*pandoc-citeproc/ } @args;
     }
     eval {
         if ($subdir && !-d $subdir) {
             make_path($subdir) or die "Could not make_path $subdir: $!";
         }
         my $to_format = $extra_formats{$ext}->{format} || $ext;
+        my $tmp_export_path = $export_path;
+        $tmp_export_path =~ s/\.pdf$/.tex/ if $indirect_pdf;
         open(EXPORT, "|-",
              $command,
              '-f' => 'json',
              '-t' => $to_format,
-             '-o' => $export_path,
+             '-o' => $tmp_export_path,
              @args, @extra_args) or die "Could not open pipe for $ext: $!";
         print EXPORT $json_content;
         close EXPORT or die "Could not close pipe for $ext: $!";
+        if ($indirect_pdf && $tmp_export_path ne $export_path) {
+            my @latexmk_args = qw(-quiet -silent);
+            if (grep { /xelatex/ } @extra_args) {
+                push @latexmk_args, '-xelatex';
+            } elsif (grep { /lualatex/ } @extra_args) {
+                push @latexmk_args, '-lualatex';
+            } else {
+                push @latexmk_args, '-pdf';
+            }
+            chdir $subdir or die "Could not chdir to $subdir: $!";
+            my $plain_fn = $1 if $tmp_export_path =~ /([^\/]+)$/;
+            $plain_fn =~ s/\.tex//;
+            system('latexmk', @latexmk_args, $plain_fn) == 0
+                or die "Could not run latexmk for pdf generation ($export_path): $!";
+            system('latexmk', '-c', '-quiet', '-silent', $plain_fn) == 0
+                or die "Could not run latexmk for cleanup ($export_path): $!";
+            # These files are apparently not cleaned up by latexmk -c.
+            foreach ('run.xml', 'bbl') {
+                my $fn = "$subdir/$plain_fn.$_";
+                unlink($fn) if -f $fn;
+            }
+        }
         $pagestate{$page}{pandoc_extra_formats}{$ext} = $export_url;
     };
     if ($@) {
@@ -649,6 +683,51 @@ sub _export_file_path_and_url {
     $export_url .= "/" unless $export_url =~ /\/$/;
     $export_url .= "$page/$page_minus_dirs.$extension";
     return ($export_path, $export_url);
+}
+
+
+## compile_string and unwrap_c are used to make the meta data structures
+## easier to work with for perl.
+
+sub compile_string {
+    # Partially represents an item from the data structure in meta as a string.
+    my @uncompiled = @_;
+    return $uncompiled[0] if @uncompiled==1 && !ref($uncompiled[0]);
+    @uncompiled = @{$uncompiled[0]} if @uncompiled==1 && ref $uncompiled[0] eq 'ARRAY';
+    my $compiled_string = '';
+    foreach my $word_or_space (@uncompiled) {
+        next unless ref $word_or_space eq 'HASH';
+        my $type = $word_or_space->{'t'};
+        $compiled_string .= compile_string(@{ $word_or_space->{c} }) if $type eq 'MetaInlines';
+        next unless $type eq 'Str' || $type eq 'Space' || $type eq 'MetaString';
+        $compiled_string .= $type eq 'Space' ? ' ' : $word_or_space->{c};
+    }
+    return $compiled_string;
+}
+sub unwrap_c {
+    # Unwrap pandoc's MetaLists, MetaInlines, etc.
+    # Finds the deepest-level scalar value for 'c' in the data structure.
+    # Lists with one element are replaced with the scalar, lists with more
+    # than one element are returned as an arrayref containing scalars.
+    my $container = shift;
+    if (ref $container eq 'ARRAY' && @$container > 1) {
+        if (ref $container->[0] eq 'HASH' && $container->[0]->{t} =~ /^(?:Str|Space)$/) {
+            # handles scalar author fields
+            return join('', map { compile_string($_) } @$container);
+        } else {
+            return [map {unwrap_c($_)} @$container];
+        }
+    } elsif (ref $container eq 'ARRAY' && @$container) {
+        return unwrap_c($container->[0]);
+    } elsif (ref $container eq 'ARRAY') {
+        return;
+    } elsif (ref $container eq 'HASH' && $container->{c}) {
+        return unwrap_c($container->{c});
+    } elsif (ref $container) {
+        return;
+    } else {
+        return $container;
+    }
 }
 
 1;
