@@ -1,3 +1,9 @@
+0.4.1 (2016-02-14)
+==================
+
+* Add `pandoc_pdf_export_cleanup` option, false by default.
+* Corrected the specification of some configuration options.
+
 0.4 (2016-02-03)
 =================
 

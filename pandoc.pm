@@ -236,90 +236,97 @@ sub getsetup () {
         safe => 1,
         rebuild => 1,
     },
-    pandoc_latex_template {
+    pandoc_latex_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for LaTeX and normal PDF output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_latex_extra_options {
+    pandoc_latex_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for LaTeX (and PDF) generation",
         safe => 0,
         rebuild => 0,
     },
-    pandoc_beamer_template {
+    pandoc_beamer_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for Beamer PDF output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_beamer_extra_options {
+    pandoc_beamer_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for Beamer PDF generation",
         safe => 0,
         rebuild => 0,
     },
-    pandoc_revealjs_template {
+    pandoc_pdf_export_cleanup => {
+        type => "boolean",
+        example => "0",
+        description => "Whether to clean up LaTeX auxiliary files after PDF generation",
+        safe => 0,
+        rebuild => 0,
+    },
+    pandoc_revealjs_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for Reveal.js slides output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_revealjs_extra_options {
+    pandoc_revealjs_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for Reveal.js slides generation",
         safe => 0,
         rebuild => 0,
     },
-    pandoc_docx_template {
+    pandoc_docx_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for MS Word (docx) output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_docx_extra_options {
+    pandoc_docx_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for DOCX generation",
         safe => 0,
         rebuild => 0,
     },
-    pandoc_odt_template {
+    pandoc_odt_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for OpenDocument (odt) output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_odt_extra_options {
+    pandoc_odt_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for ODT generation",
         safe => 0,
         rebuild => 0,
     },
-    pandoc_epub_template {
+    pandoc_epub_template => {
         type => "string",
         example => "",
         description => "Path to pandoc template for EPUB3 output",
         safe => 1,
         rebuild => 0,
     },
-    pandoc_epub_extra_options {
+    pandoc_epub_extra_options => {
         type => "internal",
         default => [],
         description => "List of extra pandoc options for EPUB3 generation",
         safe => 0,
         rebuild => 0,
-    },
+    };
 }
 
 
@@ -605,6 +612,12 @@ sub export_file {
             push @extra_args, @$cnf;
         }
     }
+    my $pdf_cleanup = 0;
+    if (defined $pagestate{$page}{meta}{"pandoc_pdf_export_cleanup"}) {
+        $pdf_cleanup = $pagestate{$page}{meta}{"pandoc_pdf_export_cleanup"};
+    } elsif ($config{"pandoc_pdf_export_cleanup"}) {
+        $pdf_cleanup = 1;
+    }
     # If the user has asked for native LaTeX bibliography handling in the
     # extra_args for this export format (using --biblatex or --natbib),
     # some extra care is needed. Among other things, we need an external
@@ -644,12 +657,14 @@ sub export_file {
             $plain_fn =~ s/\.tex//;
             system('latexmk', @latexmk_args, $plain_fn) == 0
                 or die "Could not run latexmk for pdf generation ($export_path): $!";
-            system('latexmk', '-c', '-quiet', '-silent', $plain_fn) == 0
-                or die "Could not run latexmk for cleanup ($export_path): $!";
-            # These files are apparently not cleaned up by latexmk -c.
-            foreach ('run.xml', 'bbl') {
-                my $fn = "$subdir/$plain_fn.$_";
-                unlink($fn) if -f $fn;
+            if ($pdf_cleanup) {
+                system('latexmk', '-c', '-quiet', '-silent', $plain_fn) == 0
+                    or die "Could not run latexmk for cleanup ($export_path): $!";
+                # These files are apparently not cleaned up by latexmk -c.
+                foreach ('run.xml', 'bbl') {
+                    my $fn = "$subdir/$plain_fn.$_";
+                    unlink($fn) if -f $fn;
+                }
             }
         }
         $pagestate{$page}{pandoc_extra_formats}{$ext} = $export_url;
@@ -697,7 +712,7 @@ sub compile_string {
     my $compiled_string = '';
     foreach my $word_or_space (@uncompiled) {
         next unless ref $word_or_space eq 'HASH';
-        my $type = $word_or_space->{'t'};
+        my $type = $word_or_space->{'t'} || '';
         $compiled_string .= compile_string(@{ $word_or_space->{c} }) if $type eq 'MetaInlines';
         next unless $type eq 'Str' || $type eq 'Space' || $type eq 'MetaString';
         $compiled_string .= $type eq 'Space' ? ' ' : $word_or_space->{c};

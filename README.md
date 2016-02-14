@@ -132,6 +132,8 @@ There are several configuration options related to the export functionality:
 
 * `pandoc_beamer_extra_options`: List of extra pandoc options for Beamer PDF generation.
 
+* `pandoc_pdf_export_cleanup`: Whether to cleanup LaTeX auxiliary files after doing a PDF export (including Beamer). The default is to keep this False, since it often speeds PDF regeneration up considerably when updating a page.
+
 * `pandoc_revealjs_template`: Path to pandoc template for Reveal.js slides output.
 
 * `pandoc_revealjs_extra_options`: List of extra pandoc options for Reveal.js slides generation. **Please note** that the option `--self-contained` is added automatically. In order for this to work, pandoc has to know where to find the reveal.js Javascript and CSS files. The easiest way of making sure of this is to keep them in pandoc's default user data directory. You can see the name of this folder by running `pandoc --version`; usually it is `~/.pandoc`, in which case the reveal.js files would be in the subdirectory `~/.pandoc/reveal.js/`. You can download the most recent reveal.js release [here](https://github.com/hakimel/reveal.js/releases).
