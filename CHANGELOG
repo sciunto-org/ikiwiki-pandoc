@@ -1,3 +1,8 @@
+0.4.2 (2016-04-23)
+==================
+
+* Fix issue with inline directives (Github issue #11, reported by Kevin Holzer (hlzr))
+
 0.4.1 (2016-02-14)
 ==================
 

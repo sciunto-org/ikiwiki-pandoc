@@ -412,6 +412,10 @@ sub htmlize ($@) {
     require Encode;
     my $content = Encode::encode_utf8($params{content});
 
+    # Protect inline plugin placeholders from being mangled by pandoc:
+    $content =~ s{<div class="inline" id="(\d+)"></div>}
+                 {::INLINE::PLACEHOLDER::$1::}g;
+
     print PANDOC_OUT $content;
     close PANDOC_OUT;
 
@@ -554,6 +558,11 @@ sub htmlize ($@) {
     waitpid $to_html_pid, 0;
 
     $content = Encode::decode_utf8(join('', @html));
+
+    # Reinstate placeholders for inline plugin:
+    $content =~ s{::INLINE::PLACEHOLDER::(\d+)::}
+                 {<div class="inline" id="$1"></div>}g;
+
     return $content;
 }
 
