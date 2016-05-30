@@ -7,7 +7,6 @@ Pandoc plugin for ikiwiki.
 
 * <http://ikiwiki.info/plugins/contrib/pandoc/>
 
-
 Install
 -------
 
@@ -40,6 +39,13 @@ Install
     ikiwiki --rebuild --setup *.setup
 
 **Note:** If you want to put mathematics markup into your pages or blog entries, you are likely to run into problems with the `smiley` plugin, so you should probably disable it by adding it to the `disable_plugins` list in your `*.setup` file.
+
+Updating to a newer version
+---------------------------
+
+Start by examining which files have changed since you last installed or updated the plugin. For each such file, repeat the relevant installation steps. If in doubt, repeat them all (i.e. steps 1–3 from above).
+
+If ikiwiki-pandoc now supports options which have been added since last your last update, you may wish to take the time refresh your setup file as well by carrying out step 5 above, possibly followed by changing the new options by hand.
 
 Options
 -------
