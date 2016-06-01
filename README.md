@@ -45,7 +45,7 @@ Updating to a newer version
 
 Start by examining which files have changed since you last installed or updated the plugin. For each such file, repeat the relevant installation steps. If in doubt, repeat them all (i.e. steps 1–3 from above).
 
-If ikiwiki-pandoc now supports options which have been added since last your last update, you may wish to take the time refresh your setup file as well by carrying out step 5 above, possibly followed by changing the new options by hand.
+If ikiwiki-pandoc now supports options which have been added since your previous installation/update, you may wish to take the time to refresh your setup file as well by carrying out step 5 above, possibly followed by changing the new options from their default values.
 
 Options
 -------
