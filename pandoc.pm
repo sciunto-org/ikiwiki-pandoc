@@ -166,6 +166,13 @@ sub getsetup () {
         safe => 1,
         rebuild => 1,
     },
+    pandoc_html_extra_options => {
+        type => "internal",
+        default => [],
+        description => "List of extra pandoc options for html",
+        safe => 0,
+        rebuild => 0,
+    },
     pandoc_numsect => {
         type => "boolean",
         example => 0,
@@ -534,10 +541,24 @@ sub htmlize ($@) {
         }
     }
 
+    # html_extra_options my be set in Meta block in the page or in the .setup
+    # file.  If both are present, the Meta block has precedence, even if it is
+    # an empty list
+    my @html_args = @args;
+    if (ref $meta->{html_extra_options}{c} eq 'ARRAY') {
+      if (ref unwrap_c($meta->{html_extra_options}{c}) eq 'ARRAY') {
+        push @html_args, @{unwrap_c($meta->{html_extra_options}{c})};
+      } else {
+        push @html_args, unwrap_c($meta->{html_extra_options}{c});
+      }
+    } elsif (ref $config{'pandoc_html_extra_options'} eq 'ARRAY') {
+      push @html_args, @{$config{'pandoc_html_extra_options'}};
+    }
+
     my $to_html_pid = open2(*PANDOC_IN, *JSON_IN, $command,
                     '-f', 'json',
                     '-t', $htmlformat,
-                    @args);
+                    @html_args);
     error("Unable to open $command") unless $to_html_pid;
 
     $pagestate{$page}{pandoc_extra_formats} = {};

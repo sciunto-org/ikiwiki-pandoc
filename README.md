@@ -112,6 +112,8 @@ These settings have no effect unless you have activated the `page.tmpl` file whi
 
 * `pandoc_codeclasses` (string): CSS classes to add to indented code blocks. One may also specify CSS classes individually for each block.
 
+* `pandoc_html_extra_options`: List of extra pandoc options for HTML output. (Note that this, like other `*_extra_options`, is a *list*, not simply a string). You may also set this option per page in the yaml metadata block with `html_extra_options`, setting it on an individual page overrides the global setting, even if the per page setting is an empty list.
+
 ### Extra output formats
 
 It is sometimes useful to use pandoc to export the content of a wiki page to non-html formats, e.g. pdf or docx. This can be triggered by setting certain attributes in the YAML meta block of the page. The currently supported formats are `pdf`, `docx`, `odt`, `latex`, `beamer`, `revealjs` and `epub`. The corresponding meta attributes are the boolean values `generate_pdf`, `generate_docx`, `generate_odt`, `generate_latex`, `generate_beamer`, `generate_revealjs` and `generate_epub`. As a shortcut, `generate_all_formats` will turn on the generation of all seven formats; some of them may then be turned off individually. For instance,
