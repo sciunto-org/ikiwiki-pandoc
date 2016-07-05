@@ -112,7 +112,7 @@ These settings have no effect unless you have activated the `page.tmpl` file whi
 
 * `pandoc_codeclasses` (string): CSS classes to add to indented code blocks. One may also specify CSS classes individually for each block.
 
-* `pandoc_html_extra_options`: List of extra pandoc options for HTML output. (Note that this, like other `*_extra_options`, is a *list*, not simply a string). You may also set this option per page in the yaml metadata block with `html_extra_options`, setting it on an individual page overrides the global setting, even if the per page setting is an empty list.
+* `pandoc_html_extra_options`: Extra pandoc options that are specific for HTML and do not apply to other output formats. (Note that this, like other `*_extra_options`, is a *list*, not simply a string). You may also set this option per page in the yaml metadata block using the key `html_extra_options`. Note that a per-page setting (even if it is an empty list) overrides the global setting rather than extending it.
 
 ### Extra output formats
 
