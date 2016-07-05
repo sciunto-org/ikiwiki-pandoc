@@ -1,3 +1,13 @@
+0.5 (2016-07-05)
+================
+
+* Added `pandoc_html_extra_options` configuration option as well as support for `html_extra_options` key in YAML meta block. Contributed by Jesse Hathaway (lollipopman).
+
+0.4.3 (2016-06-01)
+==================
+
+* Added documentation on updating ikiwiki-pandoc to a newer version.
+
 0.4.2 (2016-04-23)
 ==================
 
