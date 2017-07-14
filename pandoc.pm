@@ -15,7 +15,7 @@ my %extra_formats = (
     pdf    => { ext=>'pdf', label=>'PDF', format=>'latex', extra=>[], order=>1 },
     docx   => { ext=>'docx', label=>'DOCX', format=>'docx', extra=>[], order=>2 },
     odt    => { ext=>'odt', label=>'ODT', format=>'odt', extra=>[], order=>3 },
-    beamer => { ext=>'beamer.pdf', label=>'Beamer', format=>'beamer', extra=>[], order=>4 },
+    beamer => { ext=>'beamer.pdf', label=>'Beamer', format=>'beamer', extra=>[], order=>L },
     revealjs => { ext=>'revealjs.html', label=>'RevealJS', format=>'revealjs', extra=>['--self-contained'], order=>5 },
     epub   => { ext=>'epub', label=>'EPUB', format=>'epub3', extra=>[], order=>6 },
     latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>7 },
@@ -436,7 +436,7 @@ sub htmlize ($@) {
     my $decoded_json = decode_json($json_content);
     # The representation of the meta block changed in pandoc version 1.18
     if (ref $decoded_json eq 'HASH' && $decoded_json->{'Meta'}) {
-        $meta = $decoded_json->{'Meta'} || {}; # post-1.18 version
+        $meta = $decoded_json->{'meta'} || {}; # post-1.18 version
     } elsif (ref $decoded_json eq 'ARRAY') {
         $meta = $decoded_json->[0]->{'unMeta'} || {}; # pre-1.18 version
     }
