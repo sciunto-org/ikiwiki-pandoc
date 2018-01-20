@@ -436,7 +436,7 @@ sub htmlize ($@) {
     my $decoded_json = decode_json($json_content);
     # The representation of the meta block changed in pandoc version 1.18
     if (ref $decoded_json eq 'HASH' && $decoded_json->{'Meta'}) {
-        $meta = $decoded_json->{'Meta'} || {}; # post-1.18 version
+        $meta = $decoded_json->{'meta'} || {}; # post-1.18 version
     } elsif (ref $decoded_json eq 'ARRAY') {
         $meta = $decoded_json->[0]->{'unMeta'} || {}; # pre-1.18 version
     }
