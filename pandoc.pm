@@ -412,7 +412,7 @@ sub htmlize ($@) {
     my $to_json_pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
                     '-f', $format,
                     '-t', 'json',
-                    @args, '--normalize');
+                    @args);
     error("Unable to open $command") unless $to_json_pid;
 
     # Workaround for perl bug (#376329)
