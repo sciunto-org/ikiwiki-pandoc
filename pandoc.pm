@@ -96,6 +96,13 @@ sub getsetup () {
         safe => 1,
         rebuild => 1,
     },
+    pandoc_markdown_fmt => {
+        type => "string",
+        example => "markdown",
+        description => "Format string to use when processing files handled by Pandoc.",
+        safe => 1,
+        rebuild => 1,
+    },
     pandoc_latex => {
         type => "boolean",
         example => 0,
@@ -409,8 +416,9 @@ sub htmlize ($@) {
     # can be parsed out
     # We must omit the 'bibliography' parameter here, otherwise the list of
     # references will be doubled.
+    my $markdown_fmt = $config{pandoc_markdown_fmt} || 'markdown';
     my $to_json_pid = open2(*JSON_OUT, *PANDOC_OUT, $command,
-                    '-f', $format,
+                    '-f', $markdown_fmt,
                     '-t', 'json',
                     @args);
     error("Unable to open $command") unless $to_json_pid;
