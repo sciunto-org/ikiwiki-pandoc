@@ -30,6 +30,14 @@ my @list_meta_keys = qw/
     author
     /;
 
+my @hash_meta_keys = qw/
+    experiment
+    /;
+
+my @list_hash_meta_keys = qw/
+    references
+    /;
+
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
 
@@ -470,7 +478,8 @@ sub htmlize ($@) {
     my %scalar_meta = map { ($_=>undef) } @scalar_meta_keys;
     $scalar_meta{$_.'_template'} = undef for @format_keys;
     my %bool_meta = map { ("generate_$_"=>0) } keys %extra_formats;
-    my %list_meta = map { ($_=>[]) } @list_meta_keys;
+    my %list_meta = map { ($_=>[]) } (
+        @list_meta_keys, @list_hash_meta_keys, @hash_meta_keys);
     $list_meta{$_.'_extra_options'} = [] for @format_keys;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
@@ -499,6 +508,7 @@ sub htmlize ($@) {
         $list_meta{$k} = unwrap_c($meta->{$k});
         $list_meta{$k} = [$list_meta{$k}] unless ref $list_meta{$k} eq 'ARRAY';
         $have_bibl = 1 if $k eq 'references';
+        $pagestate{$page}{meta}{$k} = $list_meta{$k};
         $pagestate{$page}{meta}{"pandoc_$k"} = $list_meta{$k};
     }
     # Try to add other keys as scalars, with pandoc_ prefix only.
@@ -612,7 +622,9 @@ sub pagetemplate (@) {
     my $template = $params{template};
     foreach my $k (keys %{$pagestate{$page}{meta}}) {
         next unless
-            (grep {/^$k$/} (@scalar_meta_keys, @list_meta_keys)) ||
+            (grep {/^$k$/} (
+                 @scalar_meta_keys, @list_meta_keys,
+                 @hash_meta_keys, @list_hash_meta_keys)) ||
             ($k =~ /^(pandoc_)/);
         $template->param($k => $pagestate{$page}{meta}{$k});
     }
