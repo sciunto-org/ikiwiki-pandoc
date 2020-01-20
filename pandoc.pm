@@ -611,7 +611,9 @@ sub pagetemplate (@) {
     my $page = $params{page};
     my $template = $params{template};
     foreach my $k (keys %{$pagestate{$page}{meta}}) {
-        next unless $k =~ /^pandoc_/;
+        next unless
+            (grep {/^$k$/} (@scalar_meta_keys, @list_meta_keys)) ||
+            ($k =~ /^(pandoc_)/);
         $template->param($k => $pagestate{$page}{meta}{$k});
     }
     return $template;
