@@ -21,6 +21,15 @@ my %extra_formats = (
     latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>7 },
 );
 
+my @scalar_meta_keys = qw/
+    title date bibliography csl subtitle abstract summary description
+    version lang locale titlesort tag fripost_debug_inner
+    /;
+
+my @list_meta_keys = qw/
+    author
+    /;
+
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
 
@@ -458,12 +467,10 @@ sub htmlize ($@) {
     # as well as some configuration options (generate_*, *_extra_options, *_template).
 
     my @format_keys = grep { $_ ne 'pdf' } keys %extra_formats;
-    my %scalar_meta = map { ($_=>undef) } qw(
-        title date bibliography csl subtitle abstract summary
-        description version lang locale);
+    my %scalar_meta = map { ($_=>undef) } @scalar_meta_keys;
     $scalar_meta{$_.'_template'} = undef for @format_keys;
     my %bool_meta = map { ("generate_$_"=>0) } keys %extra_formats;
-    my %list_meta = map { ($_=>[]) } qw/author references/;
+    my %list_meta = map { ($_=>[]) } @list_meta_keys;
     $list_meta{$_.'_extra_options'} = [] for @format_keys;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
