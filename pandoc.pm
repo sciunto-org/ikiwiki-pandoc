@@ -614,6 +614,7 @@ sub pagetemplate (@) {
         next unless $k =~ /^pandoc_/;
         $template->param($k => $pagestate{$page}{meta}{$k});
     }
+    return $template;
 }
 
 sub pageactions {
