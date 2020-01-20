@@ -773,6 +773,11 @@ sub unwrap_c {
     # Finds the deepest-level scalar value for 'c' in the data structure.
     # Lists with one element are replaced with the scalar, lists with more
     # than one element are returned as an arrayref containing scalars.
+    #
+    # Elements containing hash as keys are unwrapped. That is to
+    # support *MetaList* containing *MetaMap* with keys pointing to
+    # *MetaInlines*. Reference are examples of that structure. (hash unwrap)
+    #
     my $container = shift;
     if (ref $container eq 'ARRAY' && @$container > 1) {
         if (ref $container->[0] eq 'HASH' && $container->[0]->{t} =~ /^(?:Str|Space)$/) {
@@ -787,6 +792,8 @@ sub unwrap_c {
         return;
     } elsif (ref $container eq 'HASH' && $container->{c}) {
         return unwrap_c($container->{c});
+    } elsif (ref $container eq 'HASH' && keys $container->%*) { # (hash unwrap)
+        return {map { $_ => unwrap_c($container->{$_}) } keys $container->%*};
     } elsif (ref $container) {
         return;
     } else {
