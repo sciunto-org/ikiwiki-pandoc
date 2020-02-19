@@ -21,6 +21,23 @@ my %extra_formats = (
     latex  => { ext=>'tex', label=>'LaTeX', format=>'latex', extra=>['--standalone'], order=>7 },
 );
 
+my @scalar_meta_keys = qw/
+    title date bibliography csl subtitle abstract summary description
+    version lang locale titlesort tag fripost_debug_inner
+    /;
+
+my @list_meta_keys = qw/
+    author
+    /;
+
+my @hash_meta_keys = qw/
+    experiment
+    /;
+
+my @list_hash_meta_keys = qw/
+    references
+    /;
+
 sub import {
     my $markdown_ext = $config{pandoc_markdown_ext} || "mdwn";
 
@@ -458,12 +475,11 @@ sub htmlize ($@) {
     # as well as some configuration options (generate_*, *_extra_options, *_template).
 
     my @format_keys = grep { $_ ne 'pdf' } keys %extra_formats;
-    my %scalar_meta = map { ($_=>undef) } qw(
-        title date bibliography csl subtitle abstract summary
-        description version lang locale);
+    my %scalar_meta = map { ($_=>undef) } @scalar_meta_keys;
     $scalar_meta{$_.'_template'} = undef for @format_keys;
     my %bool_meta = map { ("generate_$_"=>0) } keys %extra_formats;
-    my %list_meta = map { ($_=>[]) } qw/author references/;
+    my %list_meta = map { ($_=>[]) } (
+        @list_meta_keys, @list_hash_meta_keys, @hash_meta_keys);
     $list_meta{$_.'_extra_options'} = [] for @format_keys;
     my $have_bibl = 0;
     foreach my $k (keys %scalar_meta) {
@@ -492,6 +508,7 @@ sub htmlize ($@) {
         $list_meta{$k} = unwrap_c($meta->{$k});
         $list_meta{$k} = [$list_meta{$k}] unless ref $list_meta{$k} eq 'ARRAY';
         $have_bibl = 1 if $k eq 'references';
+        $pagestate{$page}{meta}{$k} = $list_meta{$k};
         $pagestate{$page}{meta}{"pandoc_$k"} = $list_meta{$k};
     }
     # Try to add other keys as scalars, with pandoc_ prefix only.
@@ -604,9 +621,14 @@ sub pagetemplate (@) {
     my $page = $params{page};
     my $template = $params{template};
     foreach my $k (keys %{$pagestate{$page}{meta}}) {
-        next unless $k =~ /^pandoc_/;
+        next unless
+            (grep {/^$k$/} (
+                 @scalar_meta_keys, @list_meta_keys,
+                 @hash_meta_keys, @list_hash_meta_keys)) ||
+            ($k =~ /^(pandoc_)/);
         $template->param($k => $pagestate{$page}{meta}{$k});
     }
+    return $template;
 }
 
 sub pageactions {
@@ -765,6 +787,11 @@ sub unwrap_c {
     # Finds the deepest-level scalar value for 'c' in the data structure.
     # Lists with one element are replaced with the scalar, lists with more
     # than one element are returned as an arrayref containing scalars.
+    #
+    # Elements containing hash as keys are unwrapped. That is to
+    # support *MetaList* containing *MetaMap* with keys pointing to
+    # *MetaInlines*. Reference are examples of that structure. (hash unwrap)
+    #
     my $container = shift;
     if (ref $container eq 'ARRAY' && @$container > 1) {
         if (ref $container->[0] eq 'HASH' && $container->[0]->{t} =~ /^(?:Str|Space)$/) {
@@ -779,6 +806,8 @@ sub unwrap_c {
         return;
     } elsif (ref $container eq 'HASH' && $container->{c}) {
         return unwrap_c($container->{c});
+    } elsif (ref $container eq 'HASH' && keys $container->%*) { # (hash unwrap)
+        return {map { $_ => unwrap_c($container->{$_}) } keys $container->%*};
     } elsif (ref $container) {
         return;
     } else {
